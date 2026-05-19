@@ -10,7 +10,7 @@
       "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
       "id": 1,
       "options": {"dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": false, "showCommonLabels": false, "showLabels": true, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true},
-      "targets": [{"expr": "{service=\"load-balancer\"} | pattern `<ip> - <user> [<ts>] \"<method> <path> <proto>\" <status> <bytes>`", "refId": "A"}],
+      "targets": [{"expr": "{service=\"load-balancer\"} | pattern `<ip> - <user> [<ts>] \"<method> <path> <proto>\" <status> <bytes>` | method=~\".+\"", "refId": "A"}],
       "title": "CLF: Nginx Access Logs",
       "type": "logs"
     },
@@ -19,7 +19,7 @@
       "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
       "id": 2,
       "options": {"dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": false, "showCommonLabels": false, "showLabels": true, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true},
-      "targets": [{"expr": "{service=~\"frontend|backend\"} | logfmt", "refId": "A"}],
+      "targets": [{"expr": "{service=~\"frontend|backend\"} | logfmt | trace_id=~\"[a-f0-9]{32}\"", "refId": "A"}],
       "title": "logfmt: Application Request Logs",
       "type": "logs"
     },

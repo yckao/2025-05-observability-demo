@@ -81,11 +81,24 @@ make clean
 Grafana is provisioned with these teaching dashboards:
 
 - `Observability Demo - 4 Golden Signals`
+- `Observability Demo - Operations Overview`
+- `Observability Demo - Service Drilldown`
+- `Observability Demo - Checkout Journey`
 - `Observability Demo - RED Method`
 - `Observability Demo - USE Method`
 - `Observability Demo - Log Formats`
 - `Observability Demo - Fault Lab`
 - `Observability Demo - Traces and Profiles`
+
+Recommended real-life workflow:
+
+1. Start from `Observability Demo - Operations Overview`.
+2. If latency, errors, or traffic look abnormal, open `Observability Demo - Service Drilldown`.
+3. Select the affected `service` and `replica`.
+4. Use metrics to identify the symptom, then inspect logs in the same dashboard.
+5. Expand a log line and click the derived `trace_id` field to jump to Tempo.
+6. If CPU is high, open Pyroscope and select the matching app, for example `backend.backend-1`.
+7. Use `Observability Demo - Checkout Journey` to teach a product-style user journey from frontend to backend to database.
 
 ## Log Formats
 

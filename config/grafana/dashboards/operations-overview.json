@@ -1,0 +1,127 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [
+    {"asDropdown": false, "icon": "dashboard", "includeVars": false, "keepTime": true, "tags": [], "targetBlank": false, "title": "Service Drilldown", "tooltip": "Open service drilldown", "type": "link", "url": "/d/obs-demo-service-drilldown/observability-demo-service-drilldown"},
+    {"asDropdown": false, "icon": "dashboard", "includeVars": false, "keepTime": true, "tags": [], "targetBlank": false, "title": "Checkout Journey", "tooltip": "Open checkout journey", "type": "link", "url": "/d/obs-demo-checkout-journey/observability-demo-checkout-journey"},
+    {"asDropdown": false, "icon": "external link", "includeVars": false, "keepTime": true, "tags": [], "targetBlank": true, "title": "Explore Logs", "tooltip": "Open Loki Explore", "type": "link", "url": "/explore?left={\"datasource\":\"loki\",\"queries\":[{\"expr\":\"{service=~\\\"frontend|backend|load-balancer\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"now-30m\",\"to\":\"now\"}}"},
+    {"asDropdown": false, "icon": "external link", "includeVars": false, "keepTime": true, "tags": [], "targetBlank": true, "title": "Explore Traces", "tooltip": "Open Tempo Explore", "type": "link", "url": "/explore?left={\"datasource\":\"tempo\",\"queries\":[{\"query\":\"{ resource.service.name =~ \\\"frontend|backend\\\" }\",\"queryType\":\"traceql\",\"refId\":\"A\"}],\"range\":{\"from\":\"now-30m\",\"to\":\"now\"}}"}
+  ],
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 6, "x": 0, "y": 0},
+      "id": 1,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"expr": "sum(rate(demo_http_requests_total[5m]))", "legendFormat": "requests/sec", "refId": "A"}],
+      "title": "Total Traffic",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percentunit"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 6, "x": 6, "y": 0},
+      "id": 2,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"expr": "sum(rate(demo_http_requests_total{status=~\"5..\"}[5m])) / clamp_min(sum(rate(demo_http_requests_total[5m])), 0.001)", "legendFormat": "5xx ratio", "refId": "A"}],
+      "title": "Global Error Ratio",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 6, "x": 12, "y": 0},
+      "id": 3,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"expr": "histogram_quantile(0.95, sum(rate(demo_http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p95", "refId": "A"}],
+      "title": "Global p95 Latency",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 6, "x": 18, "y": 0},
+      "id": 4,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"expr": "sum(demo_build_info)", "legendFormat": "replicas", "refId": "A"}],
+      "title": "Application Replicas",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 5},
+      "id": 5,
+      "targets": [
+        {"expr": "sum(rate(demo_http_requests_total[1m])) by (service)", "legendFormat": "{{service}}", "refId": "A"},
+        {"expr": "sum(rate(demo_http_requests_total{status=~\"5..\"}[1m])) by (service)", "legendFormat": "5xx {{service}}", "refId": "B"}
+      ],
+      "title": "Traffic And Errors By Service",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 5},
+      "id": 6,
+      "targets": [
+        {"expr": "histogram_quantile(0.50, sum(rate(demo_http_request_duration_seconds_bucket[5m])) by (le, service))", "legendFormat": "p50 {{service}}", "refId": "A"},
+        {"expr": "histogram_quantile(0.95, sum(rate(demo_http_request_duration_seconds_bucket[5m])) by (le, service))", "legendFormat": "p95 {{service}}", "refId": "B"},
+        {"expr": "histogram_quantile(0.99, sum(rate(demo_http_request_duration_seconds_bucket[5m])) by (le, service))", "legendFormat": "p99 {{service}}", "refId": "C"}
+      ],
+      "title": "Latency By Service",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 10, "x": 0, "y": 13},
+      "id": 7,
+      "targets": [
+        {"expr": "sum(demo_build_info) by (service)", "format": "table", "instant": true, "legendFormat": "replicas", "refId": "A"},
+        {"expr": "sum(rate(demo_http_requests_total[5m])) by (service)", "format": "table", "instant": true, "legendFormat": "rps", "refId": "B"},
+        {"expr": "histogram_quantile(0.95, sum(rate(demo_http_request_duration_seconds_bucket[5m])) by (le, service))", "format": "table", "instant": true, "legendFormat": "p95", "refId": "C"}
+      ],
+      "title": "Service Snapshot",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 6, "x": 10, "y": 13},
+      "id": 8,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"expr": "max(demo_fault_state) by (fault, replica)", "legendFormat": "{{replica}} {{fault}}", "refId": "A"}],
+      "title": "Active Fault State",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 7, "w": 8, "x": 16, "y": 13},
+      "id": 9,
+      "options": {"dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": true, "showCommonLabels": false, "showLabels": true, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true},
+      "targets": [{"expr": "{service=\"backend\"} | json | event=~\"fault.*\"", "refId": "A"}],
+      "title": "Recent Fault Events",
+      "type": "logs"
+    },
+    {
+      "datasource": {"type": "__expr__", "uid": "__expr__"},
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 20},
+      "id": 10,
+      "options": {"content": "Use this as the incident landing page. Start with traffic, errors, and p95 latency. If one service is abnormal, open Service Drilldown and select that service/replica. In drilldown logs, expand a log line and click the derived trace_id field to jump into Tempo. If CPU is high, open Pyroscope and select the matching backend.* or frontend.* application.", "mode": "markdown"},
+      "title": "How To Use This Dashboard",
+      "type": "text"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["observability-demo", "overview", "operations"],
+  "time": {"from": "now-30m", "to": "now"},
+  "timezone": "browser",
+  "title": "Observability Demo - Operations Overview",
+  "uid": "obs-demo-operations-overview",
+  "version": 1
+}

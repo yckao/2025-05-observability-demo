@@ -1,0 +1,145 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [
+    {"asDropdown": false, "icon": "dashboard", "includeVars": false, "keepTime": true, "tags": [], "targetBlank": false, "title": "Operations Overview", "tooltip": "Back to overview", "type": "link", "url": "/d/obs-demo-operations-overview/observability-demo-operations-overview"},
+    {"asDropdown": false, "icon": "external link", "includeVars": true, "keepTime": true, "tags": [], "targetBlank": true, "title": "Explore Logs", "tooltip": "Open logs for selected service", "type": "link", "url": "/explore?left={\"datasource\":\"loki\",\"queries\":[{\"expr\":\"{service=~\\\"$service\\\", replica=~\\\"$replica\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"now-30m\",\"to\":\"now\"}}"},
+    {"asDropdown": false, "icon": "external link", "includeVars": true, "keepTime": true, "tags": [], "targetBlank": true, "title": "Explore Traces", "tooltip": "Open traces for selected service", "type": "link", "url": "/explore?left={\"datasource\":\"tempo\",\"queries\":[{\"query\":\"{ resource.service.name =~ \\\"$service\\\" }\",\"queryType\":\"traceql\",\"refId\":\"A\"}],\"range\":{\"from\":\"now-30m\",\"to\":\"now\"}}"},
+    {"asDropdown": false, "icon": "external link", "includeVars": true, "keepTime": true, "tags": [], "targetBlank": true, "title": "Open Pyroscope", "tooltip": "Open profiles", "type": "link", "url": "http://localhost:4040"}
+  ],
+  "templating": {
+    "list": [
+      {"allValue": ".*", "current": {"selected": false, "text": "backend", "value": "backend"}, "datasource": {"type": "prometheus", "uid": "prometheus"}, "definition": "label_values(demo_build_info, service)", "hide": 0, "includeAll": true, "label": "service", "multi": false, "name": "service", "options": [], "query": "label_values(demo_build_info, service)", "refresh": 1, "regex": "", "skipUrlSync": false, "sort": 1, "type": "query"},
+      {"allValue": ".*", "current": {"selected": false, "text": "All", "value": ".*"}, "datasource": {"type": "prometheus", "uid": "prometheus"}, "definition": "label_values(demo_build_info{service=~\"$service\"}, replica)", "hide": 0, "includeAll": true, "label": "replica", "multi": false, "name": "replica", "options": [], "query": "label_values(demo_build_info{service=~\"$service\"}, replica)", "refresh": 2, "regex": "", "skipUrlSync": false, "sort": 1, "type": "query"}
+    ]
+  },
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 6, "x": 0, "y": 0},
+      "id": 1,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"expr": "sum(rate(demo_http_requests_total{service=~\"$service\", replica=~\"$replica\"}[5m]))", "legendFormat": "rps", "refId": "A"}],
+      "title": "Request Rate",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percentunit"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 6, "x": 6, "y": 0},
+      "id": 2,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"expr": "sum(rate(demo_http_requests_total{service=~\"$service\", replica=~\"$replica\", status=~\"5..\"}[5m])) / clamp_min(sum(rate(demo_http_requests_total{service=~\"$service\", replica=~\"$replica\"}[5m])), 0.001)", "legendFormat": "5xx ratio", "refId": "A"}],
+      "title": "Error Ratio",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 6, "x": 12, "y": 0},
+      "id": 3,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"expr": "histogram_quantile(0.95, sum(rate(demo_http_request_duration_seconds_bucket{service=~\"$service\", replica=~\"$replica\"}[5m])) by (le))", "legendFormat": "p95", "refId": "A"}],
+      "title": "p95 Latency",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 6, "x": 18, "y": 0},
+      "id": 4,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"expr": "sum(increase(demo_http_requests_total{service=~\"$service\", replica=~\"$replica\"}[5m]))", "legendFormat": "requests", "refId": "A"}],
+      "title": "Requests Last 5m",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 5},
+      "id": 5,
+      "targets": [{"expr": "sum(rate(demo_http_requests_total{service=~\"$service\", replica=~\"$replica\"}[1m])) by (route, status)", "legendFormat": "{{route}} {{status}}", "refId": "A"}],
+      "title": "Traffic By Route And Status",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 5},
+      "id": 6,
+      "targets": [
+        {"expr": "histogram_quantile(0.50, sum(rate(demo_http_request_duration_seconds_bucket{service=~\"$service\", replica=~\"$replica\"}[5m])) by (le, route))", "legendFormat": "p50 {{route}}", "refId": "A"},
+        {"expr": "histogram_quantile(0.95, sum(rate(demo_http_request_duration_seconds_bucket{service=~\"$service\", replica=~\"$replica\"}[5m])) by (le, route))", "legendFormat": "p95 {{route}}", "refId": "B"}
+      ],
+      "title": "Latency By Route",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "cores"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 8, "x": 0, "y": 13},
+      "id": 7,
+      "targets": [{"expr": "sum by (service, replica) (rate(process_cpu_seconds_total{service=~\"$service\", replica=~\"$replica\"}[1m])) or sum by (service, replica) ((rate(sys_cpu_user_ns{service=~\"$service\", replica=~\"$replica\"}[1m]) + rate(sys_cpu_sys_ns{service=~\"$service\", replica=~\"$replica\"}[1m])) / 1e9)", "legendFormat": "{{service}} {{replica}}", "refId": "A"}],
+      "title": "CPU",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 8, "x": 8, "y": 13},
+      "id": 8,
+      "targets": [{"expr": "sum by (service, replica) (process_resident_memory_bytes{service=~\"$service\", replica=~\"$replica\"}) or sum by (service, replica) (sys_rss{service=~\"$service\", replica=~\"$replica\"})", "legendFormat": "{{service}} {{replica}}", "refId": "A"}],
+      "title": "Memory",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "Bps"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 8, "x": 16, "y": 13},
+      "id": 9,
+      "targets": [
+        {"expr": "sum by (service, replica) (rate(demo_http_request_bytes_total{service=~\"$service\", replica=~\"$replica\"}[1m])) or sum by (service, replica) (rate(sys_host_net_recv_bytes{service=~\"$service\", replica=~\"$replica\"}[1m]))", "legendFormat": "rx {{service}} {{replica}}", "refId": "A"},
+        {"expr": "sum by (service, replica) (rate(demo_http_response_bytes_total{service=~\"$service\", replica=~\"$replica\"}[1m])) or sum by (service, replica) (rate(sys_host_net_send_bytes{service=~\"$service\", replica=~\"$replica\"}[1m]))", "legendFormat": "tx {{service}} {{replica}}", "refId": "B"}
+      ],
+      "title": "Network IO",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 20},
+      "id": 10,
+      "options": {"dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": false, "showCommonLabels": false, "showLabels": true, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true},
+      "targets": [{"expr": "{service=~\"$service\", replica=~\"$replica\"} | logfmt | trace_id=~\"[a-f0-9]{32}\"", "refId": "A"}],
+      "title": "Request Logs: Click trace_id To Open Tempo",
+      "type": "logs"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 20},
+      "id": 11,
+      "options": {"dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": true, "showCommonLabels": false, "showLabels": true, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true},
+      "targets": [{"expr": "{service=~\"$service\", replica=~\"$replica\"} | json | event=~\".+\"", "refId": "A"}],
+      "title": "JSON Events And Faults",
+      "type": "logs"
+    },
+    {
+      "datasource": {"type": "__expr__", "uid": "__expr__"},
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 29},
+      "id": 12,
+      "options": {"content": "Workflow: choose service and replica. Use RED panels to find symptom. Use CPU/memory/network panels for USE signals. In the log panels, expand a line and click trace_id to jump to Tempo. From Tempo, use traces-to-logs to come back to Loki. For CPU faults, open Pyroscope and select the matching application such as backend.backend-1.", "mode": "markdown"},
+      "title": "Metrics To Logs To Traces To Profiles",
+      "type": "text"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["observability-demo", "drilldown", "logs", "metrics", "traces", "profiles"],
+  "time": {"from": "now-30m", "to": "now"},
+  "timezone": "browser",
+  "title": "Observability Demo - Service Drilldown",
+  "uid": "obs-demo-service-drilldown",
+  "version": 1
+}

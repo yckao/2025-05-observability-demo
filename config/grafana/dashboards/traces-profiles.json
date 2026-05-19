@@ -22,7 +22,7 @@
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
       "id": 2,
       "options": {"dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": false, "showCommonLabels": false, "showLabels": true, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true},
-      "targets": [{"expr": "{service=~\"frontend|backend\"} | logfmt | trace_id != \"none\"", "refId": "A"}],
+      "targets": [{"expr": "{service=~\"frontend|backend\"} | logfmt | trace_id=~\"[a-f0-9]{32}\"", "refId": "A"}],
       "title": "Logs With Trace IDs",
       "type": "logs"
     },
@@ -31,7 +31,7 @@
       "fieldConfig": {"defaults": {"unit": "cores"}, "overrides": []},
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
       "id": 3,
-      "targets": [{"expr": "sum(rate(container_cpu_usage_seconds_total{container_label_com_observability_service=\"backend\"}[1m])) by (container_label_com_observability_replica)", "legendFormat": "{{container_label_com_observability_replica}}", "refId": "A"}],
+      "targets": [{"expr": "sum(rate(process_cpu_seconds_total{service=\"backend\"}[1m])) by (replica)", "legendFormat": "{{replica}}", "refId": "A"}],
       "title": "CPU Before Opening Pyroscope",
       "type": "timeseries"
     },
