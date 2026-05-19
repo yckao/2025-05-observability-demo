@@ -1,12 +1,22 @@
 apiVersion: 1
 
 providers:
-  - name: Observability Demo
+  - name: Observability Demo Student
     orgId: 1
-    folder: Observability Demo
+    folder: Observability Demo - Student
     type: file
     disableDeletion: false
     updateIntervalSeconds: 10
     allowUiUpdates: true
     options:
-      path: /var/lib/grafana/dashboards
+      path: /var/lib/grafana/dashboards/student
+
+  - name: Observability Demo Reference
+    orgId: 1
+    folder: Observability Demo - Reference
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards/reference

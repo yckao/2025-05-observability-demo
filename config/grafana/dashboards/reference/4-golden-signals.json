@@ -42,13 +42,13 @@
     },
     {
       "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "fieldConfig": {"defaults": {"unit": "percentunit"}, "overrides": []},
+      "fieldConfig": {"defaults": {"unit": "percent"}, "overrides": []},
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
       "id": 4,
       "targets": [
-        {"expr": "sum by (service) (rate(process_cpu_seconds_total{service=~\"frontend|backend\"}[1m])) or sum by (service) ((rate(sys_cpu_user_ns{service=\"database\"}[1m]) + rate(sys_cpu_sys_ns{service=\"database\"}[1m])) / 1e9)", "legendFormat": "CPU {{service}}", "refId": "A"}
+        {"expr": "100 * sum by (service) (label_replace(rate(container_cpu_usage_seconds_total{id=~\".*obs-demo-(frontend|backend|crdb)-[0-9][.]slice/docker-.*\", cpu=\"total\"}[1m]), \"service\", \"$1\", \"id\", \".*obs-demo-(frontend|backend|crdb)-[0-9][.]slice/docker-.*\")) / clamp_min(sum by (service) (label_replace(container_spec_cpu_quota{id=~\".*obs-demo-(frontend|backend|crdb)-[0-9][.]slice/docker-.*\"} / container_spec_cpu_period{id=~\".*obs-demo-(frontend|backend|crdb)-[0-9][.]slice/docker-.*\"}, \"service\", \"$1\", \"id\", \".*obs-demo-(frontend|backend|crdb)-[0-9][.]slice/docker-.*\")), 0.001)", "legendFormat": "{{service}}", "refId": "A"}
       ],
-      "title": "Saturation Proxy: CPU Seconds Per Second",
+      "title": "Saturation: CPU Utilization Of Cgroup Quota",
       "type": "timeseries"
     },
     {
@@ -65,26 +65,26 @@
     },
     {
       "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "fieldConfig": {"defaults": {"unit": "ms"}, "overrides": []},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
       "gridPos": {"h": 5, "w": 8, "x": 8, "y": 16},
       "id": 6,
       "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
       "targets": [
-        {"expr": "max(demo_fault_state{fault=\"latency_ms\"}) by (replica)", "legendFormat": "{{replica}}", "refId": "A"}
+        {"expr": "histogram_quantile(0.95, sum(rate(demo_http_request_duration_seconds_bucket{service=\"backend\"}[5m])) by (le, replica))", "legendFormat": "{{replica}}", "refId": "A"}
       ],
-      "title": "Injected Latency",
+      "title": "Backend p95 Latency By Replica",
       "type": "stat"
     },
     {
       "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "fieldConfig": {"defaults": {"unit": "percent"}, "overrides": []},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
       "gridPos": {"h": 5, "w": 8, "x": 16, "y": 16},
       "id": 7,
       "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
       "targets": [
-        {"expr": "max(demo_fault_state{fault=\"error_rate\"}) by (replica)", "legendFormat": "{{replica}}", "refId": "A"}
+        {"expr": "sum(rate(demo_http_requests_total{service=\"backend\",status=~\"5..\"}[1m])) by (replica)", "legendFormat": "{{replica}}", "refId": "A"}
       ],
-      "title": "Injected Error Rate",
+      "title": "Backend 5xx By Replica",
       "type": "stat"
     }
   ],
@@ -93,7 +93,7 @@
   "tags": ["observability-demo", "golden-signals"],
   "time": {"from": "now-30m", "to": "now"},
   "timezone": "browser",
-  "title": "Observability Demo - 4 Golden Signals",
+  "title": "Reference - 4 Golden Signals",
   "uid": "obs-demo-golden-signals",
   "version": 1
 }

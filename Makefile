@@ -58,7 +58,7 @@ traffic-logs:
 	docker compose --profile traffic logs -f --tail=100 traffic-generator
 
 fault-reset:
-	curl -sS http://localhost:8080/api/fault/reset | jq .
+	./scripts/fault-reset.sh | jq .
 
 clean:
 	docker compose down -v --remove-orphans

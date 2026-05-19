@@ -22,7 +22,7 @@
     }
     .hero p { max-width: 780px; line-height: 1.65; color: #dbeafe; }
     .pill { display: inline-block; background: rgba(255,255,255,0.14); padding: 6px 12px; border-radius: 999px; font-size: 14px; }
-    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 22px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 22px; }
     .card { background: white; border: 1px solid #e5e7eb; border-radius: 22px; padding: 20px; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07); }
     .card h2 { margin-top: 0; font-size: 18px; }
     button, a.button {
@@ -38,10 +38,25 @@
       margin: 5px 5px 5px 0;
     }
     button.secondary, a.secondary { background: #1d4ed8; }
-    button.warn { background: #b45309; }
-    button.danger { background: #b91c1c; }
     pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #111827; color: #d1fae5; padding: 16px; border-radius: 18px; min-height: 160px; }
     code { background: #eef2ff; padding: 2px 5px; border-radius: 6px; }
+    #toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      max-width: min(520px, calc(100vw - 40px));
+      padding: 16px 18px;
+      border-radius: 16px;
+      background: #991b1b;
+      color: white;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.28);
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 150ms ease, transform 150ms ease;
+      pointer-events: none;
+    }
+    #toast.visible { opacity: 1; transform: translateY(0); }
+    .trace { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
     @media (max-width: 850px) { .grid { grid-template-columns: 1fr; } .hero { padding: 24px; } }
   </style>
 </head>
@@ -51,8 +66,8 @@
     <span class="pill">served by {{ replica }}</span>
     <h1>Observability Demo</h1>
     <p>
-      Three frontend replicas, three backend replicas, and a three-node CockroachDB layer.
-      Use this page to generate traces, logs, metrics, profiles, and fault scenarios for CS students.
+      Generate user traffic, then investigate symptoms with metrics, logs, traces, and profiles.
+      Your task is to infer what changed from telemetry instead of reading a fault-control panel.
     </p>
     <a class="button secondary" href="http://localhost:3000" target="_blank" rel="noreferrer">Open Grafana</a>
     <a class="button secondary" href="http://localhost:4040" target="_blank" rel="noreferrer">Open Pyroscope</a>
@@ -61,29 +76,18 @@
   <section class="grid">
     <div class="card">
       <h2>Generate Traffic</h2>
-      <p>Calls <code>/shop</code>, which makes frontend-to-backend requests and creates distributed traces.</p>
+      <p>Use these actions while you investigate the dashboards. Failed requests will show a trace ID.</p>
       <button onclick="call('/shop')">Run checkout flow</button>
       <button onclick="call('/api/products')">Call backend products</button>
       <button onclick="call('/api/orders')">Call backend orders</button>
     </div>
 
     <div class="card">
-      <h2>Inject Faults</h2>
-      <button class="warn" onclick="call('/api/fault/latency?ms=1500')">Latency 1500ms</button>
-      <button class="danger" onclick="call('/api/fault/errors?rate=40')">40% errors</button>
-      <button class="warn" onclick="call('/api/fault/cpu?seconds=10')">CPU burn</button>
-      <button class="warn" onclick="call('/api/fault/memory?mb=128')">Memory growth</button>
-      <button class="warn" onclick="call('/api/fault/db-slow?seconds=3')">DB slow</button>
-      <button class="warn" onclick="call('/api/fault/db-connections?count=20&seconds=30')">DB connections</button>
-      <button onclick="call('/api/fault/reset')">Reset faults</button>
-    </div>
-
-    <div class="card">
-      <h2>Teaching Focus</h2>
-      <p><strong>RED:</strong> rate, errors, duration.</p>
-      <p><strong>USE:</strong> utilization, saturation, errors.</p>
-      <p><strong>Golden Signals:</strong> latency, traffic, errors, saturation.</p>
-      <p><strong>Logs:</strong> CLF, logfmt, JSON.</p>
+      <h2>Investigation Hints</h2>
+      <p><strong>Start:</strong> open <code>00 Start Here</code> in Grafana.</p>
+      <p><strong>RED:</strong> compare rate, errors, and duration by service and route.</p>
+      <p><strong>USE:</strong> compare CPU and memory utilization by container quota.</p>
+      <p><strong>Trace ID:</strong> use failed-request trace IDs to jump from logs into Tempo.</p>
     </div>
   </section>
 
@@ -92,21 +96,43 @@
     <pre id="output">Click a button to generate telemetry.</pre>
   </section>
 </main>
+<div id="toast"></div>
 
 <script>
+let toastTimer;
+
+function showToast(message) {
+  const toast = document.getElementById('toast');
+  toast.innerHTML = message;
+  toast.classList.add('visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('visible'), 9000);
+}
+
+function traceIdFrom(response, parsedBody) {
+  return response.headers.get('X-Trace-Id') || (parsedBody && parsedBody.trace_id) || 'not available';
+}
+
 async function call(path) {
   const output = document.getElementById('output');
   output.textContent = 'Loading ' + path + ' ...';
   try {
     const response = await fetch(path, { method: path.includes('/checkout') ? 'POST' : 'GET' });
     const text = await response.text();
+    let parsed = null;
     try {
-      output.textContent = JSON.stringify(JSON.parse(text), null, 2);
+      parsed = JSON.parse(text);
+      output.textContent = JSON.stringify(parsed, null, 2);
     } catch (_) {
       output.textContent = text;
     }
+    if (!response.ok) {
+      const traceId = traceIdFrom(response, parsed);
+      showToast('Request failed. Trace ID: <span class="trace">' + traceId + '</span>');
+    }
   } catch (error) {
     output.textContent = String(error);
+    showToast('Request failed before a response was received.');
   }
 }
 </script>

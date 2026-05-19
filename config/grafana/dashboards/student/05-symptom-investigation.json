@@ -1,0 +1,82 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [
+    {"asDropdown": false, "icon": "dashboard", "includeVars": false, "keepTime": true, "tags": [], "targetBlank": false, "title": "Start Here", "tooltip": "Open start dashboard", "type": "link", "url": "/d/obs-demo-start-here/00-start-here"},
+    {"asDropdown": false, "icon": "dashboard", "includeVars": false, "keepTime": true, "tags": [], "targetBlank": false, "title": "Service Drilldown", "tooltip": "Open service drilldown", "type": "link", "url": "/d/obs-demo-service-drilldown/observability-demo-service-drilldown"}
+  ],
+  "panels": [
+    {
+      "datasource": {"type": "__expr__", "uid": "__expr__"},
+      "gridPos": {"h": 5, "w": 24, "x": 0, "y": 0},
+      "id": 1,
+      "options": {"content": "Use this dashboard when the instructor says a hidden scenario is active. Do not look for a scenario flag. Compare replicas and routes: which one has abnormal latency, errors, CPU, memory, or database pressure?", "mode": "markdown"},
+      "title": "Symptom-Only Investigation",
+      "type": "text"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 5},
+      "id": 2,
+      "targets": [{"expr": "histogram_quantile(0.95, sum(rate(demo_http_request_duration_seconds_bucket{service=\"backend\"}[5m])) by (le, replica, route))", "legendFormat": "{{replica}} {{route}}", "refId": "A"}],
+      "title": "Backend p95 Latency By Replica And Route",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 5},
+      "id": 3,
+      "targets": [{"expr": "sum(rate(demo_http_requests_total{service=\"backend\",status=~\"5..\"}[1m])) by (replica, route)", "legendFormat": "{{replica}} {{route}}", "refId": "A"}],
+      "title": "Backend 5xx By Replica And Route",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percent"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 13},
+      "id": 4,
+      "targets": [{"expr": "100 * sum by (replica) (label_replace(rate(container_cpu_usage_seconds_total{id=~\".*obs-demo-(frontend-[0-9]|backend-[0-9]|crdb-[0-9])[.]slice/docker-.*\", cpu=\"total\"}[1m]), \"replica\", \"$1\", \"id\", \".*obs-demo-(frontend-[0-9]|backend-[0-9]|crdb-[0-9])[.]slice/docker-.*\")) / clamp_min(sum by (replica) (label_replace(container_spec_cpu_quota{id=~\".*obs-demo-(frontend-[0-9]|backend-[0-9]|crdb-[0-9])[.]slice/docker-.*\"} / container_spec_cpu_period{id=~\".*obs-demo-(frontend-[0-9]|backend-[0-9]|crdb-[0-9])[.]slice/docker-.*\"}, \"replica\", \"$1\", \"id\", \".*obs-demo-(frontend-[0-9]|backend-[0-9]|crdb-[0-9])[.]slice/docker-.*\")), 0.001)", "legendFormat": "{{replica}}", "refId": "A"}],
+      "title": "Container CPU Utilization Of Cgroup Quota",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percent"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 13},
+      "id": 5,
+      "targets": [{"expr": "100 * sum by (replica) (label_replace(container_memory_working_set_bytes{id=~\".*obs-demo-(frontend-[0-9]|backend-[0-9]|crdb-[0-9])[.]slice/docker-.*\"}, \"replica\", \"$1\", \"id\", \".*obs-demo-(frontend-[0-9]|backend-[0-9]|crdb-[0-9])[.]slice/docker-.*\")) / clamp_min(sum by (replica) (label_replace(container_spec_memory_limit_bytes{id=~\".*obs-demo-(frontend-[0-9]|backend-[0-9]|crdb-[0-9])[.]slice/docker-.*\"}, \"replica\", \"$1\", \"id\", \".*obs-demo-(frontend-[0-9]|backend-[0-9]|crdb-[0-9])[.]slice/docker-.*\")), 1)", "legendFormat": "{{replica}}", "refId": "A"}],
+      "title": "Container Memory Utilization Of Cgroup Limit",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 21},
+      "id": 6,
+      "targets": [{"expr": "sum(sql_conns{service=\"database\"}) by (replica)", "legendFormat": "{{replica}}", "refId": "A"}],
+      "title": "Database Connections",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 8, "w": 16, "x": 8, "y": 21},
+      "id": 7,
+      "options": {"dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": false, "showCommonLabels": false, "showLabels": true, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true},
+      "targets": [{"expr": "{service=~\"frontend|backend\"} | logfmt | status=~\"5..\"", "refId": "A"}],
+      "title": "Recent Error Request Logs With Trace IDs",
+      "type": "logs"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["observability-demo", "student", "investigation"],
+  "time": {"from": "now-30m", "to": "now"},
+  "timezone": "browser",
+  "title": "05 Symptom Investigation",
+  "uid": "obs-demo-symptom-investigation",
+  "version": 1
+}

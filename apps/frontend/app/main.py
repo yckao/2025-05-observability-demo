@@ -87,6 +87,27 @@ async def _count_response_bytes(response: Response) -> tuple[Response, int]:
     return response, len(body) + _headers_size(response.headers)
 
 
+def _trace_error(status_code: int, message: str, trace_id: str | None = None) -> JSONResponse:
+    trace_id = trace_id or current_trace_id()
+    return JSONResponse(
+        {"error": message, "trace_id": trace_id},
+        status_code=status_code,
+        headers={"X-Trace-Id": trace_id},
+    )
+
+
+def _upstream_error_response(error: requests.HTTPError, message: str) -> JSONResponse:
+    response = error.response
+    status_code = response.status_code if response is not None else 502
+    trace_id = response.headers.get("X-Trace-Id") if response is not None else None
+    if response is not None:
+        try:
+            trace_id = response.json().get("trace_id") or trace_id
+        except ValueError:
+            pass
+    return _trace_error(status_code, message, trace_id)
+
+
 @app.middleware("http")
 async def record_requests(request: Request, call_next):
     start = time.perf_counter()
@@ -101,7 +122,7 @@ async def record_requests(request: Request, call_next):
     finally:
         duration = time.perf_counter() - start
         route = getattr(request.scope.get("route"), "path", request.url.path)
-        if request.url.path != "/metrics":
+        if request.url.path != "/metrics" and not request.url.path.startswith("/admin"):
             HTTP_REQUESTS.labels(SERVICE_NAME, REPLICA_ID, request.method, route, str(status)).inc()
             HTTP_DURATION.labels(SERVICE_NAME, REPLICA_ID, request.method, route, str(status)).observe(duration)
             HTTP_REQUEST_BYTES.labels(SERVICE_NAME, REPLICA_ID, request.method, route, str(status)).inc(
@@ -129,6 +150,11 @@ def metrics() -> Response:
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    return _trace_error(500, "internal server error")
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "service": SERVICE_NAME, "replica": REPLICA_ID}
@@ -146,19 +172,35 @@ def index(request: Request):
     )
 
 
+@app.get("/admin")
+def admin(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "admin.html",
+        {
+            "replica": REPLICA_ID,
+        },
+    )
+
+
 @app.get("/shop")
 def shop() -> JSONResponse:
-    product_response = session.get(f"{BACKEND_URL}/products", timeout=5)
-    product_response.raise_for_status()
-    products = product_response.json()["products"]
+    try:
+        product_response = session.get(f"{BACKEND_URL}/products", timeout=5)
+        product_response.raise_for_status()
+        products = product_response.json()["products"]
 
-    selected = random.choice(products)
-    checkout_response = session.post(
-        f"{BACKEND_URL}/checkout",
-        json={"product_id": selected["id"]},
-        timeout=5,
-    )
-    checkout_response.raise_for_status()
+        selected = random.choice(products)
+        checkout_response = session.post(
+            f"{BACKEND_URL}/checkout",
+            json={"product_id": selected["id"]},
+            timeout=5,
+        )
+        checkout_response.raise_for_status()
+    except requests.HTTPError as exc:
+        return _upstream_error_response(exc, "checkout flow failed")
+    except requests.RequestException:
+        return _trace_error(502, "backend unavailable")
 
     return JSONResponse(
         {

@@ -76,14 +76,13 @@
     },
     {
       "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "fieldConfig": {"defaults": {"unit": "cores"}, "overrides": []},
+      "fieldConfig": {"defaults": {"unit": "percent"}, "overrides": []},
       "gridPos": {"h": 7, "w": 8, "x": 16, "y": 13},
       "id": 7,
       "targets": [
-        {"expr": "sum(rate(process_cpu_seconds_total{service=~\"frontend|backend\"}[1m])) by (service, replica)", "legendFormat": "{{service}} {{replica}}", "refId": "A"},
-        {"expr": "sum((rate(sys_cpu_user_ns{service=\"database\"}[1m]) + rate(sys_cpu_sys_ns{service=\"database\"}[1m])) / 1e9) by (service, replica)", "legendFormat": "{{service}} {{replica}}", "refId": "B"}
+        {"expr": "100 * sum by (replica) (label_replace(rate(container_cpu_usage_seconds_total{id=~\".*obs-demo-(frontend-[0-9]|backend-[0-9]|crdb-[0-9])[.]slice/docker-.*\", cpu=\"total\"}[1m]), \"replica\", \"$1\", \"id\", \".*obs-demo-(frontend-[0-9]|backend-[0-9]|crdb-[0-9])[.]slice/docker-.*\")) / clamp_min(sum by (replica) (label_replace(container_spec_cpu_quota{id=~\".*obs-demo-(frontend-[0-9]|backend-[0-9]|crdb-[0-9])[.]slice/docker-.*\"} / container_spec_cpu_period{id=~\".*obs-demo-(frontend-[0-9]|backend-[0-9]|crdb-[0-9])[.]slice/docker-.*\"}, \"replica\", \"$1\", \"id\", \".*obs-demo-(frontend-[0-9]|backend-[0-9]|crdb-[0-9])[.]slice/docker-.*\")), 0.001)", "legendFormat": "{{replica}}", "refId": "A"}
       ],
-      "title": "CPU While Checkout Runs",
+      "title": "Container CPU Utilization While Checkout Runs",
       "type": "timeseries"
     },
     {
@@ -100,8 +99,8 @@
       "gridPos": {"h": 9, "w": 12, "x": 12, "y": 20},
       "id": 9,
       "options": {"dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": true, "showCommonLabels": false, "showLabels": true, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true},
-      "targets": [{"expr": "{service=\"backend\"} | json | event=~\"fault.*\"", "refId": "A"}],
-      "title": "Fault Events Affecting Checkout",
+      "targets": [{"expr": "{service=~\"frontend|backend\"} | logfmt | route=~\"/shop|/api/products|/api/checkout\" | status=~\"5..\"", "refId": "A"}],
+      "title": "Checkout Error Logs",
       "type": "logs"
     }
   ],
@@ -110,7 +109,7 @@
   "tags": ["observability-demo", "checkout", "use-case"],
   "time": {"from": "now-30m", "to": "now"},
   "timezone": "browser",
-  "title": "Observability Demo - Checkout Journey",
+  "title": "03 Checkout Journey",
   "uid": "obs-demo-checkout-journey",
   "version": 1
 }

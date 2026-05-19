@@ -79,20 +79,20 @@
     },
     {
       "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "fieldConfig": {"defaults": {"unit": "cores"}, "overrides": []},
+      "fieldConfig": {"defaults": {"unit": "percent"}, "overrides": []},
       "gridPos": {"h": 7, "w": 8, "x": 0, "y": 13},
       "id": 7,
-      "targets": [{"expr": "sum by (service, replica) (rate(process_cpu_seconds_total{service=~\"$service\", replica=~\"$replica\"}[1m])) or sum by (service, replica) ((rate(sys_cpu_user_ns{service=~\"$service\", replica=~\"$replica\"}[1m]) + rate(sys_cpu_sys_ns{service=~\"$service\", replica=~\"$replica\"}[1m])) / 1e9)", "legendFormat": "{{service}} {{replica}}", "refId": "A"}],
-      "title": "CPU",
+      "targets": [{"expr": "100 * sum by (replica) (label_replace(rate(container_cpu_usage_seconds_total{id=~\".*obs-demo-($service-[0-9])[.]slice/docker-.*\", id=~\".*obs-demo-($replica)[.]slice/docker-.*\", cpu=\"total\"}[1m]), \"replica\", \"$1\", \"id\", \".*obs-demo-($service-[0-9])[.]slice/docker-.*\")) / clamp_min(sum by (replica) (label_replace(container_spec_cpu_quota{id=~\".*obs-demo-($service-[0-9])[.]slice/docker-.*\", id=~\".*obs-demo-($replica)[.]slice/docker-.*\"} / container_spec_cpu_period{id=~\".*obs-demo-($service-[0-9])[.]slice/docker-.*\", id=~\".*obs-demo-($replica)[.]slice/docker-.*\"}, \"replica\", \"$1\", \"id\", \".*obs-demo-($service-[0-9])[.]slice/docker-.*\")), 0.001)", "legendFormat": "{{replica}}", "refId": "A"}],
+      "title": "CPU Utilization Of Cgroup Quota",
       "type": "timeseries"
     },
     {
       "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []},
+      "fieldConfig": {"defaults": {"unit": "percent"}, "overrides": []},
       "gridPos": {"h": 7, "w": 8, "x": 8, "y": 13},
       "id": 8,
-      "targets": [{"expr": "sum by (service, replica) (process_resident_memory_bytes{service=~\"$service\", replica=~\"$replica\"}) or sum by (service, replica) (sys_rss{service=~\"$service\", replica=~\"$replica\"})", "legendFormat": "{{service}} {{replica}}", "refId": "A"}],
-      "title": "Memory",
+      "targets": [{"expr": "100 * sum by (replica) (label_replace(container_memory_working_set_bytes{id=~\".*obs-demo-($service-[0-9])[.]slice/docker-.*\", id=~\".*obs-demo-($replica)[.]slice/docker-.*\"}, \"replica\", \"$1\", \"id\", \".*obs-demo-($service-[0-9])[.]slice/docker-.*\")) / clamp_min(sum by (replica) (label_replace(container_spec_memory_limit_bytes{id=~\".*obs-demo-($service-[0-9])[.]slice/docker-.*\", id=~\".*obs-demo-($replica)[.]slice/docker-.*\"}, \"replica\", \"$1\", \"id\", \".*obs-demo-($service-[0-9])[.]slice/docker-.*\")), 1)", "legendFormat": "{{replica}}", "refId": "A"}],
+      "title": "Memory Utilization Of Cgroup Limit",
       "type": "timeseries"
     },
     {
@@ -121,15 +121,15 @@
       "gridPos": {"h": 9, "w": 12, "x": 12, "y": 20},
       "id": 11,
       "options": {"dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": true, "showCommonLabels": false, "showLabels": true, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true},
-      "targets": [{"expr": "{service=~\"$service\", replica=~\"$replica\"} | json | event=~\".+\"", "refId": "A"}],
-      "title": "JSON Events And Faults",
+      "targets": [{"expr": "{service=~\"$service\", replica=~\"$replica\"} | logfmt | status=~\"5..\"", "refId": "A"}],
+      "title": "Error Request Logs",
       "type": "logs"
     },
     {
       "datasource": {"type": "__expr__", "uid": "__expr__"},
       "gridPos": {"h": 6, "w": 24, "x": 0, "y": 29},
       "id": 12,
-      "options": {"content": "Workflow: choose service and replica. Use RED panels to find symptom. Use CPU/memory/network panels for USE signals. In the log panels, expand a line and click trace_id to jump to Tempo. From Tempo, use traces-to-logs to come back to Loki. For CPU faults, open Pyroscope and select the matching application such as backend.backend-1.", "mode": "markdown"},
+      "options": {"content": "Workflow: choose service and replica. Use RED panels to find symptoms. Use CPU/memory/network panels for USE signals. In the log panels, expand a line and click trace_id to jump to Tempo. From Tempo, use traces-to-logs to come back to Loki. If CPU is high, open Pyroscope and select the matching application such as backend.backend-1.", "mode": "markdown"},
       "title": "Metrics To Logs To Traces To Profiles",
       "type": "text"
     }
@@ -139,7 +139,7 @@
   "tags": ["observability-demo", "drilldown", "logs", "metrics", "traces", "profiles"],
   "time": {"from": "now-30m", "to": "now"},
   "timezone": "browser",
-  "title": "Observability Demo - Service Drilldown",
+  "title": "02 Service Drilldown",
   "uid": "obs-demo-service-drilldown",
   "version": 1
 }

@@ -31,7 +31,8 @@ All observability storage is local Docker volume storage. No S3, MinIO, or cloud
 
 | Service | URL |
 | --- | --- |
-| Demo application | http://localhost:8080 |
+| Student application | http://localhost:8080 |
+| Instructor fault console | http://localhost:8088 |
 | Grafana | http://localhost:3000 |
 | Prometheus | http://localhost:9090 |
 | Loki | http://localhost:3100 |
@@ -56,7 +57,7 @@ http://localhost:8080
 http://localhost:3000
 ```
 
-Generate traffic:
+Generate student traffic:
 
 ```bash
 make load-smoke
@@ -96,17 +97,14 @@ make clean
 
 ## Dashboards
 
-Grafana is provisioned with these teaching dashboards:
+Grafana is provisioned with student investigation dashboards and reference dashboards. Start with `00 Start Here`.
 
-- `Observability Demo - 4 Golden Signals`
-- `Observability Demo - Operations Overview`
-- `Observability Demo - Service Drilldown`
-- `Observability Demo - Checkout Journey`
-- `Observability Demo - RED Method`
-- `Observability Demo - USE Method`
-- `Observability Demo - Log Formats`
-- `Observability Demo - Fault Lab`
-- `Observability Demo - Traces and Profiles`
+- `00 Start Here`
+- `01 Operations Overview`
+- `02 Service Drilldown`
+- `03 Checkout Journey`
+- `04 Logs, Traces, Profiles`
+- Reference dashboards for RED, USE, 4 Golden Signals, and log formats.
 
 Recommended real-life workflow:
 
@@ -134,28 +132,30 @@ logfmt from normal frontend/backend request logs:
 level=info service=backend replica=backend-2 method=GET path=/api/products status=200 duration_ms=34 trace_id=abc123
 ```
 
-JSON from backend fault/error events:
+JSON from backend error events:
 
 ```json
-{"level":"warning","service":"backend","replica":"backend-2","event":"fault_latency_enabled","latency_ms":1500,"trace_id":"abc123"}
+{"level":"error","service":"backend","replica":"backend-2","event":"request_error","path":"/api/products","status":503,"trace_id":"abc123"}
 ```
 
 Low-cardinality Loki labels are added by Alloy from Docker labels: `service`, `replica`, and `log_format`.
 
-## Fault Injection
+## Instructor Fault Injection
 
-Use the UI buttons at http://localhost:8080 or call the endpoints directly.
-Fault endpoints are routed to `backend-1` on purpose. This creates one bad backend replica, which makes replica-level dashboards easier to explain.
+Use the instructor console at http://localhost:8088 or call the helper scripts directly.
+Fault controls are intentionally hidden from the student port. Scenarios can target `backend-1`, `backend-2`, `backend-3`, or all replicas, and can be scoped to a specific backend route.
 
 ```bash
-curl 'http://localhost:8080/api/fault/latency?ms=1500'
-curl 'http://localhost:8080/api/fault/errors?rate=40'
-curl 'http://localhost:8080/api/fault/cpu?seconds=10'
-curl 'http://localhost:8080/api/fault/memory?mb=256'
-curl 'http://localhost:8080/api/fault/db-slow?seconds=3'
-curl 'http://localhost:8080/api/fault/db-connections?count=20&seconds=30'
-curl 'http://localhost:8080/api/fault/reset'
+./scripts/fault-latency.sh 1500 backend-2 /api/checkout
+./scripts/fault-errors.sh 40 backend-1 /api/products 503
+./scripts/fault-cpu.sh 10 backend-3
+./scripts/fault-memory.sh 256 backend-2
+./scripts/fault-db-slow.sh 3 backend-1
+./scripts/fault-db-connections.sh 20 30 backend-1
+./scripts/fault-reset.sh all
 ```
+
+The student dashboards do not expose active fault settings or fault-control events. Students should infer the scenario from symptoms such as error ratio, latency, container CPU/memory utilization, logs, traces, and profiles.
 
 ## Teaching Flow
 
@@ -166,17 +166,17 @@ curl 'http://localhost:8080/api/fault/reset'
 5. Explain USE: utilization, saturation, and errors for containers and database.
 6. Explain the 4 Golden Signals: latency, traffic, errors, and saturation.
 7. Compare CLF, logfmt, and JSON in the log dashboard.
-8. Inject latency and show it in RED and Golden Signals.
-9. Inject CPU or memory pressure and show it in USE.
+8. Use the instructor console to inject a hidden scenario.
+9. Ask students to identify the likely fault from telemetry symptoms.
 10. Open a slow trace in Tempo and correlate it with logs in Loki.
-11. Open Pyroscope to show where CPU time is spent during CPU faults.
+11. Open Pyroscope to show where CPU time is spent during CPU-heavy scenarios.
 
 ## Notes
 
 - Alloy replaces Promtail and acts as the single local collector/agent.
 - Application traces use OpenTelemetry OTLP to Alloy.
 - Application metrics are exposed on `/metrics` and scraped by Alloy.
-- The USE dashboard avoids cAdvisor container labels because rootless Docker/Lima/Colima often do not expose them. CPU and memory use application process metrics plus CockroachDB node metrics. Network IO uses app HTTP byte counters plus CockroachDB network metrics.
+- Frontend, backend, and database containers have cgroup CPU and memory quotas so cAdvisor can show utilization against explicit limits.
 - Container logs are collected by Alloy from Docker JSON log files and sent to Loki.
 - Continuous profiles are sent from the Python SDK to Pyroscope.
 - CockroachDB is used so the local database layer has three replicas without PostgreSQL replication setup.

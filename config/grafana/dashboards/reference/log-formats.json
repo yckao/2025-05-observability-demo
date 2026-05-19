@@ -28,8 +28,8 @@
       "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16},
       "id": 3,
       "options": {"dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": true, "showCommonLabels": false, "showLabels": true, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true},
-      "targets": [{"expr": "{service=\"backend\"} | json | event=~\"fault.*\"", "refId": "A"}],
-      "title": "JSON: Fault And Error Events",
+      "targets": [{"expr": "{service=\"backend\"} | json | event=\"request_error\"", "refId": "A"}],
+      "title": "JSON: Structured Error Events",
       "type": "logs"
     }
   ],
@@ -38,7 +38,7 @@
   "tags": ["observability-demo", "logs"],
   "time": {"from": "now-30m", "to": "now"},
   "timezone": "browser",
-  "title": "Observability Demo - Log Formats",
+  "title": "Reference - Log Formats",
   "uid": "obs-demo-log-formats",
   "version": 1
 }

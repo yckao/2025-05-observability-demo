@@ -6,8 +6,11 @@ x-json-logging: &json-logging
 services:
   load-balancer:
     image: nginx:1.27-alpine
+    container_name: obs-demo-load-balancer
+    cgroup_parent: obs-demo-load-balancer.slice
     ports:
       - "8080:80"
+      - "8088:8088"
     volumes:
       - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
@@ -25,6 +28,10 @@ services:
 
   frontend-1: &frontend
     build: ./apps/frontend
+    container_name: obs-demo-frontend-1
+    cgroup_parent: obs-demo-frontend-1.slice
+    cpus: "0.50"
+    mem_limit: 256m
     expose:
       - "8080"
     environment:
@@ -41,6 +48,8 @@ services:
 
   frontend-2:
     <<: *frontend
+    container_name: obs-demo-frontend-2
+    cgroup_parent: obs-demo-frontend-2.slice
     environment:
       SERVICE_NAME: frontend
       REPLICA_ID: frontend-2
@@ -55,6 +64,8 @@ services:
 
   frontend-3:
     <<: *frontend
+    container_name: obs-demo-frontend-3
+    cgroup_parent: obs-demo-frontend-3.slice
     environment:
       SERVICE_NAME: frontend
       REPLICA_ID: frontend-3
@@ -69,6 +80,10 @@ services:
 
   backend-1: &backend
     build: ./apps/backend
+    container_name: obs-demo-backend-1
+    cgroup_parent: obs-demo-backend-1.slice
+    cpus: "0.50"
+    mem_limit: 512m
     expose:
       - "8080"
     environment:
@@ -89,6 +104,8 @@ services:
 
   backend-2:
     <<: *backend
+    container_name: obs-demo-backend-2
+    cgroup_parent: obs-demo-backend-2.slice
     environment:
       SERVICE_NAME: backend
       REPLICA_ID: backend-2
@@ -103,6 +120,8 @@ services:
 
   backend-3:
     <<: *backend
+    container_name: obs-demo-backend-3
+    cgroup_parent: obs-demo-backend-3.slice
     environment:
       SERVICE_NAME: backend
       REPLICA_ID: backend-3
@@ -117,7 +136,11 @@ services:
 
   crdb-1:
     image: cockroachdb/cockroach:v24.2.4
-    command: start --insecure --join=crdb-1,crdb-2,crdb-3 --advertise-addr=crdb-1 --listen-addr=0.0.0.0:26257 --http-addr=0.0.0.0:8080
+    container_name: obs-demo-crdb-1
+    cgroup_parent: obs-demo-crdb-1.slice
+    cpus: "1.00"
+    mem_limit: 1g
+    command: start --insecure --join=crdb-1,crdb-2,crdb-3 --advertise-addr=crdb-1 --listen-addr=0.0.0.0:26257 --http-addr=0.0.0.0:8080 --cache=128MiB --max-sql-memory=128MiB
     ports:
       - "26257:26257"
       - "8081:8080"
@@ -131,7 +154,11 @@ services:
 
   crdb-2:
     image: cockroachdb/cockroach:v24.2.4
-    command: start --insecure --join=crdb-1,crdb-2,crdb-3 --advertise-addr=crdb-2 --listen-addr=0.0.0.0:26257 --http-addr=0.0.0.0:8080
+    container_name: obs-demo-crdb-2
+    cgroup_parent: obs-demo-crdb-2.slice
+    cpus: "1.00"
+    mem_limit: 1g
+    command: start --insecure --join=crdb-1,crdb-2,crdb-3 --advertise-addr=crdb-2 --listen-addr=0.0.0.0:26257 --http-addr=0.0.0.0:8080 --cache=128MiB --max-sql-memory=128MiB
     volumes:
       - crdb-2:/cockroach/cockroach-data
     labels:
@@ -142,7 +169,11 @@ services:
 
   crdb-3:
     image: cockroachdb/cockroach:v24.2.4
-    command: start --insecure --join=crdb-1,crdb-2,crdb-3 --advertise-addr=crdb-3 --listen-addr=0.0.0.0:26257 --http-addr=0.0.0.0:8080
+    container_name: obs-demo-crdb-3
+    cgroup_parent: obs-demo-crdb-3.slice
+    cpus: "1.00"
+    mem_limit: 1g
+    command: start --insecure --join=crdb-1,crdb-2,crdb-3 --advertise-addr=crdb-3 --listen-addr=0.0.0.0:26257 --http-addr=0.0.0.0:8080 --cache=128MiB --max-sql-memory=128MiB
     volumes:
       - crdb-3:/cockroach/cockroach-data
     labels:
@@ -285,6 +316,11 @@ services:
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.49.1
+    user: "0:0"
+    command:
+      - --store_container_labels=true
+      - --whitelisted_container_labels=com.observability.service,com.observability.replica,com.docker.compose.service
+      - --housekeeping_interval=10s
     privileged: true
     expose:
       - "8080"

@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Observability Demo Admin</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #172033;
+    }
+    body { margin: 0; }
+    main { max-width: 1180px; margin: 0 auto; padding: 28px 20px 52px; }
+    .hero { background: #f8fafc; border-radius: 26px; padding: 28px; box-shadow: 0 22px 55px rgba(0,0,0,0.28); }
+    .hero p { color: #475569; max-width: 820px; line-height: 1.6; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 18px; }
+    .card { background: #ffffff; border-radius: 20px; padding: 18px; border: 1px solid #dbe4ef; }
+    label { display: block; font-weight: 700; margin-top: 12px; font-size: 14px; color: #334155; }
+    input, select { width: 100%; box-sizing: border-box; margin-top: 6px; padding: 10px 11px; border: 1px solid #cbd5e1; border-radius: 12px; font: inherit; }
+    button { border: 0; border-radius: 14px; padding: 11px 14px; font-weight: 800; cursor: pointer; background: #0f766e; color: white; margin: 8px 8px 0 0; }
+    button.warn { background: #b45309; }
+    button.danger { background: #b91c1c; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #020617; color: #d1fae5; border-radius: 18px; min-height: 200px; padding: 16px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <h1>Instructor Fault Console</h1>
+    <p>
+      This page is only exposed on the instructor port. Pick a target and scope, apply a hidden scenario,
+      then ask students to identify the symptom from dashboards, logs, traces, and profiles.
+    </p>
+  </section>
+
+  <section class="grid">
+    <div class="card">
+      <h2>Target</h2>
+      <label for="target">Backend replica</label>
+      <select id="target">
+        <option value="backend-1">backend-1</option>
+        <option value="backend-2">backend-2</option>
+        <option value="backend-3">backend-3</option>
+        <option value="all">all replicas</option>
+      </select>
+      <label for="scope">Route scope</label>
+      <select id="scope">
+        <option value="/api/">all backend API routes</option>
+        <option value="/api/products">/api/products</option>
+        <option value="/api/checkout">/api/checkout</option>
+        <option value="/api/orders">/api/orders</option>
+        <option value="/api/health">/api/health</option>
+      </select>
+      <button onclick="refreshStatus()">Refresh Status</button>
+    </div>
+
+    <div class="card">
+      <h2>Persistent Request Effects</h2>
+      <label for="latency_ms">Base latency ms</label>
+      <input id="latency_ms" type="number" min="0" max="30000" value="0">
+      <label for="jitter_ms">Jitter ms</label>
+      <input id="jitter_ms" type="number" min="0" max="30000" value="0">
+      <label for="error_rate">Error rate percent</label>
+      <input id="error_rate" type="number" min="0" max="100" value="0">
+      <label for="error_status">Error status</label>
+      <input id="error_status" type="number" min="400" max="599" value="503">
+      <label for="cpu_ms">CPU burn per matching request ms</label>
+      <input id="cpu_ms" type="number" min="0" max="10000" value="0">
+      <label for="db_delay_ms">DB delay per matching request ms</label>
+      <input id="db_delay_ms" type="number" min="0" max="30000" value="0">
+      <button onclick="configureFaults()">Apply Persistent Scenario</button>
+      <button class="danger" onclick="resetFaults()">Reset Target</button>
+    </div>
+
+    <div class="card">
+      <h2>One-Shot Pressure</h2>
+      <label for="cpu_seconds">CPU burn seconds</label>
+      <input id="cpu_seconds" type="number" min="1" max="60" value="10">
+      <button class="warn" onclick="oneShot('/api/fault/cpu?seconds=' + fieldValue('cpu_seconds'))">Run CPU Burn</button>
+      <label for="memory_mb">Memory growth MB</label>
+      <input id="memory_mb" type="number" min="1" max="1024" value="128">
+      <button class="warn" onclick="oneShot('/api/fault/memory?mb=' + fieldValue('memory_mb'))">Grow Memory</button>
+      <label for="db_slow_seconds">Slow DB query seconds</label>
+      <input id="db_slow_seconds" type="number" min="1" max="30" value="3">
+      <button class="warn" onclick="oneShot('/api/fault/db-slow?seconds=' + fieldValue('db_slow_seconds'))">Run Slow DB Query</button>
+      <label for="db_conn_count">DB connection count</label>
+      <input id="db_conn_count" type="number" min="1" max="100" value="20">
+      <label for="db_conn_seconds">DB connection hold seconds</label>
+      <input id="db_conn_seconds" type="number" min="1" max="120" value="30">
+      <button class="warn" onclick="oneShot('/api/fault/db-connections?count=' + fieldValue('db_conn_count') + '&seconds=' + fieldValue('db_conn_seconds'))">Hold DB Connections</button>
+    </div>
+  </section>
+
+  <section class="card" style="margin-top: 18px;">
+    <h2>Instructor Status</h2>
+    <pre id="output">Choose a target and apply or refresh a scenario.</pre>
+  </section>
+</main>
+
+<script>
+const replicas = ['backend-1', 'backend-2', 'backend-3'];
+
+function fieldValue(id) {
+  return document.getElementById(id).value;
+}
+
+function selectedTargets() {
+  const target = fieldValue('target');
+  return target === 'all' ? replicas : [target];
+}
+
+function writeOutput(data) {
+  document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+}
+
+async function callTarget(target, path, options = {}) {
+  const separator = path.includes('?') ? '&' : '?';
+  const response = await fetch(path + separator + 'target=' + encodeURIComponent(target), options);
+  const text = await response.text();
+  let body;
+  try { body = JSON.parse(text); } catch (_) { body = text; }
+  return { target, status: response.status, body };
+}
+
+async function callTargets(path, options = {}) {
+  const results = [];
+  for (const target of selectedTargets()) {
+    results.push(await callTarget(target, path, options));
+  }
+  writeOutput(results);
+  return results;
+}
+
+async function configureFaults() {
+  const payload = {
+    scope: fieldValue('scope'),
+    latency_ms: Number(fieldValue('latency_ms')),
+    jitter_ms: Number(fieldValue('jitter_ms')),
+    error_rate: Number(fieldValue('error_rate')),
+    error_status: Number(fieldValue('error_status')),
+    cpu_ms: Number(fieldValue('cpu_ms')),
+    db_delay_ms: Number(fieldValue('db_delay_ms')),
+  };
+  await callTargets('/api/fault/configure', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+async function oneShot(path) {
+  await callTargets(path);
+}
+
+async function resetFaults() {
+  await callTargets('/api/fault/reset');
+}
+
+async function refreshStatus() {
+  await callTargets('/api/fault/status');
+}
+</script>
+</body>
+</html>

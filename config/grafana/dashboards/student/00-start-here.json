@@ -1,0 +1,56 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [
+    {"asDropdown": false, "icon": "dashboard", "includeVars": false, "keepTime": true, "tags": [], "targetBlank": false, "title": "Operations Overview", "tooltip": "Open operations overview", "type": "link", "url": "/d/obs-demo-operations-overview/observability-demo-operations-overview"},
+    {"asDropdown": false, "icon": "dashboard", "includeVars": false, "keepTime": true, "tags": [], "targetBlank": false, "title": "Service Drilldown", "tooltip": "Open service drilldown", "type": "link", "url": "/d/obs-demo-service-drilldown/observability-demo-service-drilldown"},
+    {"asDropdown": false, "icon": "dashboard", "includeVars": false, "keepTime": true, "tags": [], "targetBlank": false, "title": "Symptom Investigation", "tooltip": "Open symptom investigation", "type": "link", "url": "/d/obs-demo-symptom-investigation/05-symptom-investigation"}
+  ],
+  "panels": [
+    {
+      "datasource": {"type": "__expr__", "uid": "__expr__"},
+      "gridPos": {"h": 7, "w": 24, "x": 0, "y": 0},
+      "id": 1,
+      "options": {"content": "# Observability Demo: Start Here\n\nUse this dashboard as the investigation menu. The instructor may activate a hidden scenario; dashboards intentionally show symptoms, not scenario flags.\n\n1. Open **01 Operations Overview** to decide whether the issue is latency, errors, traffic, or saturation.\n2. Open **02 Service Drilldown** when one service or replica looks suspicious.\n3. Open **03 Checkout Journey** when the user-facing `/shop` flow fails or slows down.\n4. Open **04 Logs, Traces, Profiles** when you have a trace ID or CPU looks high.\n5. Open **05 Symptom Investigation** for a side-by-side replica comparison.", "mode": "markdown"},
+      "title": "Which Dashboard Should I Use?",
+      "type": "text"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 8, "x": 0, "y": 7},
+      "id": 2,
+      "targets": [{"expr": "sum(rate(demo_http_requests_total[5m])) by (service)", "legendFormat": "{{service}}", "refId": "A"}],
+      "title": "Traffic By Service",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percentunit"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 8, "x": 8, "y": 7},
+      "id": 3,
+      "targets": [{"expr": "sum(rate(demo_http_requests_total{status=~\"5..\"}[5m])) by (service) / clamp_min(sum(rate(demo_http_requests_total[5m])) by (service), 0.001)", "legendFormat": "{{service}}", "refId": "A"}],
+      "title": "Error Ratio By Service",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 8, "x": 16, "y": 7},
+      "id": 4,
+      "targets": [{"expr": "histogram_quantile(0.95, sum(rate(demo_http_request_duration_seconds_bucket[5m])) by (le, service))", "legendFormat": "{{service}}", "refId": "A"}],
+      "title": "p95 Latency By Service",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["observability-demo", "student", "start"],
+  "time": {"from": "now-30m", "to": "now"},
+  "timezone": "browser",
+  "title": "00 Start Here",
+  "uid": "obs-demo-start-here",
+  "version": 1
+}

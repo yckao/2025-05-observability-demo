@@ -51,7 +51,7 @@
   "tags": ["observability-demo", "red"],
   "time": {"from": "now-30m", "to": "now"},
   "timezone": "browser",
-  "title": "Observability Demo - RED Method",
+  "title": "Reference - RED Method",
   "uid": "obs-demo-red",
   "version": 1
 }
