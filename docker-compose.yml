@@ -6,6 +6,7 @@ x-json-logging: &json-logging
 services:
   load-balancer:
     image: nginx:1.27-alpine
+    restart: on-failure
     container_name: obs-demo-load-balancer
     cgroup_parent: obs-demo-load-balancer.slice
     ports:
@@ -28,6 +29,7 @@ services:
 
   frontend-1: &frontend
     build: ./apps/frontend
+    restart: on-failure
     container_name: obs-demo-frontend-1
     cgroup_parent: obs-demo-frontend-1.slice
     cpus: "0.50"
@@ -80,6 +82,7 @@ services:
 
   backend-1: &backend
     build: ./apps/backend
+    restart: on-failure
     container_name: obs-demo-backend-1
     cgroup_parent: obs-demo-backend-1.slice
     cpus: "0.50"
@@ -136,6 +139,7 @@ services:
 
   crdb-1:
     image: cockroachdb/cockroach:v24.2.4
+    restart: on-failure
     container_name: obs-demo-crdb-1
     cgroup_parent: obs-demo-crdb-1.slice
     cpus: "1.00"
@@ -154,6 +158,7 @@ services:
 
   crdb-2:
     image: cockroachdb/cockroach:v24.2.4
+    restart: on-failure
     container_name: obs-demo-crdb-2
     cgroup_parent: obs-demo-crdb-2.slice
     cpus: "1.00"
@@ -169,6 +174,7 @@ services:
 
   crdb-3:
     image: cockroachdb/cockroach:v24.2.4
+    restart: on-failure
     container_name: obs-demo-crdb-3
     cgroup_parent: obs-demo-crdb-3.slice
     cpus: "1.00"
@@ -184,6 +190,7 @@ services:
 
   db-init:
     image: cockroachdb/cockroach:v24.2.4
+    restart: on-failure
     depends_on:
       - crdb-1
       - crdb-2
@@ -204,6 +211,7 @@ services:
 
   alloy:
     image: grafana/alloy:v1.5.1
+    restart: on-failure
     user: "0:0"
     command:
       - run
@@ -231,6 +239,7 @@ services:
 
   prometheus:
     image: prom/prometheus:v2.55.1
+    restart: on-failure
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
@@ -249,6 +258,7 @@ services:
 
   loki:
     image: grafana/loki:3.2.1
+    restart: on-failure
     command: -config.file=/etc/loki/loki.yml
     ports:
       - "3100:3100"
@@ -263,6 +273,7 @@ services:
 
   tempo:
     image: grafana/tempo:2.6.1
+    restart: on-failure
     command: -config.file=/etc/tempo/tempo.yml
     ports:
       - "3200:3200"
@@ -277,6 +288,7 @@ services:
 
   pyroscope:
     image: grafana/pyroscope:1.9.0
+    restart: on-failure
     user: "0:0"
     command: -config.file=/etc/pyroscope/pyroscope.yml
     ports:
@@ -292,6 +304,7 @@ services:
 
   grafana:
     image: grafana/grafana:11.3.1
+    restart: on-failure
     ports:
       - "3000:3000"
     environment:
@@ -316,6 +329,7 @@ services:
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.49.1
+    restart: on-failure
     user: "0:0"
     command:
       - --store_container_labels=true
@@ -338,6 +352,7 @@ services:
 
   k6:
     image: grafana/k6:0.54.0
+    restart: on-failure
     profiles:
       - tools
     volumes:
@@ -352,6 +367,7 @@ services:
     image: grafana/k6:0.54.0
     profiles:
       - traffic
+    restart: on-failure
     command: run /scripts/k6-consistent.js
     environment:
       BASE_URL: http://load-balancer
