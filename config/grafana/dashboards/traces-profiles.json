@@ -1,0 +1,56 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [
+    {"asDropdown": false, "icon": "external link", "includeVars": false, "keepTime": true, "tags": [], "targetBlank": true, "title": "Explore Tempo", "tooltip": "Open Tempo Explore", "type": "link", "url": "/explore?left={\"datasource\":\"tempo\",\"queries\":[{\"query\":\"{ resource.service.name = \\\"backend\\\" }\",\"queryType\":\"traceql\",\"refId\":\"A\"}],\"range\":{\"from\":\"now-30m\",\"to\":\"now\"}}"},
+    {"asDropdown": false, "icon": "external link", "includeVars": false, "keepTime": true, "tags": [], "targetBlank": true, "title": "Open Pyroscope", "tooltip": "Open Pyroscope", "type": "link", "url": "http://localhost:4040"}
+  ],
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "id": 1,
+      "targets": [{"expr": "histogram_quantile(0.95, sum(rate(demo_http_request_duration_seconds_bucket[5m])) by (le, service, replica))", "legendFormat": "{{service}} {{replica}}", "refId": "A"}],
+      "title": "Find Slow Replica, Then Open Tempo",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "id": 2,
+      "options": {"dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": false, "showCommonLabels": false, "showLabels": true, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true},
+      "targets": [{"expr": "{service=~\"frontend|backend\"} | logfmt | trace_id != \"none\"", "refId": "A"}],
+      "title": "Logs With Trace IDs",
+      "type": "logs"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "cores"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "id": 3,
+      "targets": [{"expr": "sum(rate(container_cpu_usage_seconds_total{container_label_com_observability_service=\"backend\"}[1m])) by (container_label_com_observability_replica)", "legendFormat": "{{container_label_com_observability_replica}}", "refId": "A"}],
+      "title": "CPU Before Opening Pyroscope",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "__expr__", "uid": "__expr__"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "id": 4,
+      "options": {"code": {"language": "plaintext", "showLineNumbers": false, "showMiniMap": false}, "content": "Trace workflow:\n1. Generate traffic with /shop or make load-steady.\n2. Inject latency or CPU faults.\n3. Use Logs With Trace IDs and click the derived Tempo link.\n4. In Tempo, inspect frontend -> backend -> SQL spans.\n5. Open Pyroscope and select backend.* while CPU fault is active.", "mode": "markdown"},
+      "title": "Trace And Profile Drilldown",
+      "type": "text"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["observability-demo", "traces", "profiles"],
+  "time": {"from": "now-30m", "to": "now"},
+  "timezone": "browser",
+  "title": "Observability Demo - Traces and Profiles",
+  "uid": "obs-demo-traces-profiles",
+  "version": 1
+}

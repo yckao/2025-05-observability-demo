@@ -1,0 +1,124 @@
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+prometheus.remote_write "local" {
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
+  }
+}
+
+prometheus.scrape "demo_apps" {
+  targets = [
+    {"__address__" = "frontend-1:8080", "service" = "frontend", "replica" = "frontend-1"},
+    {"__address__" = "frontend-2:8080", "service" = "frontend", "replica" = "frontend-2"},
+    {"__address__" = "frontend-3:8080", "service" = "frontend", "replica" = "frontend-3"},
+    {"__address__" = "backend-1:8080", "service" = "backend", "replica" = "backend-1"},
+    {"__address__" = "backend-2:8080", "service" = "backend", "replica" = "backend-2"},
+    {"__address__" = "backend-3:8080", "service" = "backend", "replica" = "backend-3"},
+  ]
+  metrics_path = "/metrics"
+  scrape_interval = "10s"
+  forward_to = [prometheus.remote_write.local.receiver]
+}
+
+prometheus.scrape "cockroachdb" {
+  targets = [
+    {"__address__" = "crdb-1:8080", "service" = "database", "replica" = "crdb-1"},
+    {"__address__" = "crdb-2:8080", "service" = "database", "replica" = "crdb-2"},
+    {"__address__" = "crdb-3:8080", "service" = "database", "replica" = "crdb-3"},
+  ]
+  metrics_path = "/_status/vars"
+  scrape_interval = "10s"
+  forward_to = [prometheus.remote_write.local.receiver]
+}
+
+prometheus.scrape "cadvisor" {
+  targets = [
+    {"__address__" = "cadvisor:8080", "service" = "cadvisor", "replica" = "cadvisor"},
+  ]
+  scrape_interval = "10s"
+  forward_to = [prometheus.remote_write.local.receiver]
+}
+
+otelcol.receiver.otlp "apps" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    traces = [otelcol.processor.batch.traces.input]
+  }
+}
+
+otelcol.processor.batch "traces" {
+  output {
+    traces = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo:4317"
+    tls {
+      insecure = true
+    }
+  }
+}
+
+local.file_match "docker_logs" {
+  path_targets = [
+    {"__path__" = "/var/lib/docker/containers/*/*-json.log", "job" = "docker"},
+  ]
+  sync_period = "5s"
+}
+
+loki.source.file "containers" {
+  targets = local.file_match.docker_logs.targets
+  tail_from_end = true
+  forward_to = [loki.process.demo.receiver]
+}
+
+loki.process "demo" {
+  stage.json {
+    expressions = {
+      log = "log",
+      stream = "stream",
+      service = "attrs.\"com.observability.service\"",
+      replica = "attrs.\"com.observability.replica\"",
+      log_format = "attrs.\"com.observability.log_format\"",
+    }
+  }
+
+  stage.labels {
+    values = {
+      service = "",
+      replica = "",
+      log_format = "",
+      stream = "",
+    }
+  }
+
+  stage.output {
+    source = "log"
+  }
+
+  stage.static_labels {
+    values = {
+      environment = "local",
+    }
+  }
+
+  forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

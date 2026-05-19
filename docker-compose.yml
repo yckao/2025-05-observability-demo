@@ -1,0 +1,324 @@
+x-json-logging: &json-logging
+  driver: json-file
+  options:
+    labels: com.observability.service,com.observability.replica,com.observability.log_format
+
+services:
+  load-balancer:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend-1
+      - frontend-2
+      - frontend-3
+      - backend-1
+      - backend-2
+      - backend-3
+    labels:
+      com.observability.service: load-balancer
+      com.observability.replica: load-balancer
+      com.observability.log_format: clf
+    logging: *json-logging
+
+  frontend-1: &frontend
+    build: ./apps/frontend
+    expose:
+      - "8080"
+    environment:
+      SERVICE_NAME: frontend
+      REPLICA_ID: frontend-1
+      BACKEND_URL: http://load-balancer/api
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+      PYROSCOPE_SERVER_ADDRESS: http://pyroscope:4040
+    labels:
+      com.observability.service: frontend
+      com.observability.replica: frontend-1
+      com.observability.log_format: logfmt
+    logging: *json-logging
+
+  frontend-2:
+    <<: *frontend
+    environment:
+      SERVICE_NAME: frontend
+      REPLICA_ID: frontend-2
+      BACKEND_URL: http://load-balancer/api
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+      PYROSCOPE_SERVER_ADDRESS: http://pyroscope:4040
+    labels:
+      com.observability.service: frontend
+      com.observability.replica: frontend-2
+      com.observability.log_format: logfmt
+    logging: *json-logging
+
+  frontend-3:
+    <<: *frontend
+    environment:
+      SERVICE_NAME: frontend
+      REPLICA_ID: frontend-3
+      BACKEND_URL: http://load-balancer/api
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+      PYROSCOPE_SERVER_ADDRESS: http://pyroscope:4040
+    labels:
+      com.observability.service: frontend
+      com.observability.replica: frontend-3
+      com.observability.log_format: logfmt
+    logging: *json-logging
+
+  backend-1: &backend
+    build: ./apps/backend
+    expose:
+      - "8080"
+    environment:
+      SERVICE_NAME: backend
+      REPLICA_ID: backend-1
+      DATABASE_DSN: host=crdb-1,crdb-2,crdb-3 port=26257,26257,26257 dbname=observability_demo user=root sslmode=disable connect_timeout=3
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+      PYROSCOPE_SERVER_ADDRESS: http://pyroscope:4040
+    depends_on:
+      - crdb-1
+      - crdb-2
+      - crdb-3
+    labels:
+      com.observability.service: backend
+      com.observability.replica: backend-1
+      com.observability.log_format: mixed
+    logging: *json-logging
+
+  backend-2:
+    <<: *backend
+    environment:
+      SERVICE_NAME: backend
+      REPLICA_ID: backend-2
+      DATABASE_DSN: host=crdb-1,crdb-2,crdb-3 port=26257,26257,26257 dbname=observability_demo user=root sslmode=disable connect_timeout=3
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+      PYROSCOPE_SERVER_ADDRESS: http://pyroscope:4040
+    labels:
+      com.observability.service: backend
+      com.observability.replica: backend-2
+      com.observability.log_format: mixed
+    logging: *json-logging
+
+  backend-3:
+    <<: *backend
+    environment:
+      SERVICE_NAME: backend
+      REPLICA_ID: backend-3
+      DATABASE_DSN: host=crdb-1,crdb-2,crdb-3 port=26257,26257,26257 dbname=observability_demo user=root sslmode=disable connect_timeout=3
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+      PYROSCOPE_SERVER_ADDRESS: http://pyroscope:4040
+    labels:
+      com.observability.service: backend
+      com.observability.replica: backend-3
+      com.observability.log_format: mixed
+    logging: *json-logging
+
+  crdb-1:
+    image: cockroachdb/cockroach:v24.2.4
+    command: start --insecure --join=crdb-1,crdb-2,crdb-3 --advertise-addr=crdb-1 --listen-addr=0.0.0.0:26257 --http-addr=0.0.0.0:8080
+    ports:
+      - "26257:26257"
+      - "8081:8080"
+    volumes:
+      - crdb-1:/cockroach/cockroach-data
+    labels:
+      com.observability.service: database
+      com.observability.replica: crdb-1
+      com.observability.log_format: text
+    logging: *json-logging
+
+  crdb-2:
+    image: cockroachdb/cockroach:v24.2.4
+    command: start --insecure --join=crdb-1,crdb-2,crdb-3 --advertise-addr=crdb-2 --listen-addr=0.0.0.0:26257 --http-addr=0.0.0.0:8080
+    volumes:
+      - crdb-2:/cockroach/cockroach-data
+    labels:
+      com.observability.service: database
+      com.observability.replica: crdb-2
+      com.observability.log_format: text
+    logging: *json-logging
+
+  crdb-3:
+    image: cockroachdb/cockroach:v24.2.4
+    command: start --insecure --join=crdb-1,crdb-2,crdb-3 --advertise-addr=crdb-3 --listen-addr=0.0.0.0:26257 --http-addr=0.0.0.0:8080
+    volumes:
+      - crdb-3:/cockroach/cockroach-data
+    labels:
+      com.observability.service: database
+      com.observability.replica: crdb-3
+      com.observability.log_format: text
+    logging: *json-logging
+
+  db-init:
+    image: cockroachdb/cockroach:v24.2.4
+    depends_on:
+      - crdb-1
+      - crdb-2
+      - crdb-3
+    volumes:
+      - ./db/schema.sql:/schema.sql:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "sleep 5;
+      /cockroach/cockroach init --insecure --host=crdb-1:26257 || true;
+      until /cockroach/cockroach sql --insecure --host=crdb-1:26257 -e 'SELECT 1'; do sleep 2; done;
+      /cockroach/cockroach sql --insecure --host=crdb-1:26257 -f /schema.sql"
+    labels:
+      com.observability.service: db-init
+      com.observability.replica: db-init
+      com.observability.log_format: text
+    logging: *json-logging
+
+  alloy:
+    image: grafana/alloy:v1.5.1
+    user: "0:0"
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    ports:
+      - "12345:12345"
+      - "4317:4317"
+      - "4318:4318"
+    volumes:
+      - ./config/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - ${DOCKER_ROOT_DIR:-/var/lib/docker}/containers:/var/lib/docker/containers:ro
+      - alloy-data:/var/lib/alloy/data
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+      - pyroscope
+    labels:
+      com.observability.service: alloy
+      com.observability.replica: alloy
+      com.observability.log_format: text
+    logging: *json-logging
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-remote-write-receiver
+      - --web.enable-lifecycle
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    labels:
+      com.observability.service: prometheus
+      com.observability.replica: prometheus
+      com.observability.log_format: text
+    logging: *json-logging
+
+  loki:
+    image: grafana/loki:3.2.1
+    command: -config.file=/etc/loki/loki.yml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./config/loki/loki.yml:/etc/loki/loki.yml:ro
+      - loki-data:/loki
+    labels:
+      com.observability.service: loki
+      com.observability.replica: loki
+      com.observability.log_format: text
+    logging: *json-logging
+
+  tempo:
+    image: grafana/tempo:2.6.1
+    command: -config.file=/etc/tempo/tempo.yml
+    ports:
+      - "3200:3200"
+    volumes:
+      - ./config/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo-data:/var/tempo
+    labels:
+      com.observability.service: tempo
+      com.observability.replica: tempo
+      com.observability.log_format: text
+    logging: *json-logging
+
+  pyroscope:
+    image: grafana/pyroscope:1.9.0
+    user: "0:0"
+    command: -config.file=/etc/pyroscope/pyroscope.yml
+    ports:
+      - "4040:4040"
+    volumes:
+      - ./config/pyroscope/pyroscope.yml:/etc/pyroscope/pyroscope.yml:ro
+      - pyroscope-data:/var/lib/pyroscope
+    labels:
+      com.observability.service: pyroscope
+      com.observability.replica: pyroscope
+      com.observability.log_format: text
+    logging: *json-logging
+
+  grafana:
+    image: grafana/grafana:11.3.1
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_DEFAULT_THEME: light
+      GF_FEATURE_TOGGLES_ENABLE: traceqlEditor correlations traceToProfiles
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+      - pyroscope
+    labels:
+      com.observability.service: grafana
+      com.observability.replica: grafana
+      com.observability.log_format: text
+    logging: *json-logging
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    privileged: true
+    expose:
+      - "8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - ${DOCKER_ROOT_DIR:-/var/lib/docker}/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    labels:
+      com.observability.service: cadvisor
+      com.observability.replica: cadvisor
+      com.observability.log_format: text
+    logging: *json-logging
+
+  k6:
+    image: grafana/k6:0.54.0
+    profiles:
+      - tools
+    volumes:
+      - ./load:/scripts:ro
+    labels:
+      com.observability.service: k6
+      com.observability.replica: k6
+      com.observability.log_format: text
+    logging: *json-logging
+
+volumes:
+  alloy-data:
+  prometheus-data:
+  loki-data:
+  tempo-data:
+  pyroscope-data:
+  grafana-data:
+  crdb-1:
+  crdb-2:
+  crdb-3:

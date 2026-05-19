@@ -1,0 +1,57 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "id": 1,
+      "targets": [{"expr": "sum(rate(demo_http_requests_total[1m])) by (service, route)", "legendFormat": "{{service}} {{route}}", "refId": "A"}],
+      "title": "Rate By Route",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percentunit"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "id": 2,
+      "targets": [{"expr": "sum(rate(demo_http_requests_total{status=~\"5..\"}[5m])) by (service) / clamp_min(sum(rate(demo_http_requests_total[5m])) by (service), 0.001)", "legendFormat": "{{service}}", "refId": "A"}],
+      "title": "Error Ratio",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "id": 3,
+      "targets": [
+        {"expr": "histogram_quantile(0.50, sum(rate(demo_http_request_duration_seconds_bucket[5m])) by (le, service))", "legendFormat": "p50 {{service}}", "refId": "A"},
+        {"expr": "histogram_quantile(0.95, sum(rate(demo_http_request_duration_seconds_bucket[5m])) by (le, service))", "legendFormat": "p95 {{service}}", "refId": "B"},
+        {"expr": "histogram_quantile(0.99, sum(rate(demo_http_request_duration_seconds_bucket[5m])) by (le, service))", "legendFormat": "p99 {{service}}", "refId": "C"}
+      ],
+      "title": "Duration Quantiles",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "id": 4,
+      "targets": [{"expr": "sum(increase(demo_http_requests_total[5m])) by (service, status)", "legendFormat": "{{service}} {{status}}", "refId": "A", "format": "table", "instant": true}],
+      "title": "Status Codes Last 5m",
+      "type": "table"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["observability-demo", "red"],
+  "time": {"from": "now-30m", "to": "now"},
+  "timezone": "browser",
+  "title": "Observability Demo - RED Method",
+  "uid": "obs-demo-red",
+  "version": 1
+}

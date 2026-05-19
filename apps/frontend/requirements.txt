@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+jinja2
+requests
+prometheus-client
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-exporter-otlp-proto-grpc
+opentelemetry-instrumentation-fastapi
+opentelemetry-instrumentation-requests
+pyroscope-io

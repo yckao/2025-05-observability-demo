@@ -1,0 +1,99 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "id": 1,
+      "targets": [
+        {"expr": "histogram_quantile(0.95, sum(rate(demo_http_request_duration_seconds_bucket[5m])) by (le, service))", "legendFormat": "p95 {{service}}", "refId": "A"},
+        {"expr": "histogram_quantile(0.99, sum(rate(demo_http_request_duration_seconds_bucket[5m])) by (le, service))", "legendFormat": "p99 {{service}}", "refId": "B"}
+      ],
+      "title": "Latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "id": 2,
+      "targets": [
+        {"expr": "sum(rate(demo_http_requests_total[1m])) by (service)", "legendFormat": "{{service}}", "refId": "A"}
+      ],
+      "title": "Traffic",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "id": 3,
+      "targets": [
+        {"expr": "sum(rate(demo_http_requests_total{status=~\"5..\"}[1m])) by (service)", "legendFormat": "5xx {{service}}", "refId": "A"},
+        {"expr": "sum(rate(demo_http_requests_total{status=~\"4..\"}[1m])) by (service)", "legendFormat": "4xx {{service}}", "refId": "B"}
+      ],
+      "title": "Errors",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percentunit"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "id": 4,
+      "targets": [
+        {"expr": "sum by (service) (rate(process_cpu_seconds_total{service=~\"frontend|backend\"}[1m])) or sum by (service) ((rate(sys_cpu_user_ns{service=\"database\"}[1m]) + rate(sys_cpu_sys_ns{service=\"database\"}[1m])) / 1e9)", "legendFormat": "CPU {{service}}", "refId": "A"}
+      ],
+      "title": "Saturation Proxy: CPU Seconds Per Second",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 8, "x": 0, "y": 16},
+      "id": 5,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [
+        {"expr": "sum(demo_build_info) by (service)", "legendFormat": "{{service}}", "refId": "A"}
+      ],
+      "title": "Active Application Replicas",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "ms"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 8, "x": 8, "y": 16},
+      "id": 6,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [
+        {"expr": "max(demo_fault_state{fault=\"latency_ms\"}) by (replica)", "legendFormat": "{{replica}}", "refId": "A"}
+      ],
+      "title": "Injected Latency",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percent"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 8, "x": 16, "y": 16},
+      "id": 7,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [
+        {"expr": "max(demo_fault_state{fault=\"error_rate\"}) by (replica)", "legendFormat": "{{replica}}", "refId": "A"}
+      ],
+      "title": "Injected Error Rate",
+      "type": "stat"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["observability-demo", "golden-signals"],
+  "time": {"from": "now-30m", "to": "now"},
+  "timezone": "browser",
+  "title": "Observability Demo - 4 Golden Signals",
+  "uid": "obs-demo-golden-signals",
+  "version": 1
+}
