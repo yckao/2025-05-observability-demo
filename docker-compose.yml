@@ -312,6 +312,32 @@ services:
       com.observability.log_format: text
     logging: *json-logging
 
+  traffic-generator:
+    image: grafana/k6:0.54.0
+    profiles:
+      - traffic
+    command: run /scripts/k6-consistent.js
+    environment:
+      BASE_URL: http://load-balancer
+      TRAFFIC_DURATION: ${TRAFFIC_DURATION:-30m}
+      HOME_PER_MIN: ${HOME_PER_MIN:-20}
+      SHOP_PER_MIN: ${SHOP_PER_MIN:-30}
+      PRODUCTS_PER_MIN: ${PRODUCTS_PER_MIN:-20}
+      CHECKOUT_PER_MIN: ${CHECKOUT_PER_MIN:-10}
+      ORDERS_PER_MIN: ${ORDERS_PER_MIN:-10}
+      HEALTH_PER_MIN: ${HEALTH_PER_MIN:-6}
+      PREALLOCATED_VUS: ${PREALLOCATED_VUS:-}
+      MAX_VUS: ${MAX_VUS:-50}
+    volumes:
+      - ./load:/scripts:ro
+    depends_on:
+      - load-balancer
+    labels:
+      com.observability.service: traffic-generator
+      com.observability.replica: traffic-generator
+      com.observability.log_format: text
+    logging: *json-logging
+
 volumes:
   alloy-data:
   prometheus-data:

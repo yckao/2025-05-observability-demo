@@ -62,7 +62,25 @@ Generate traffic:
 make load-smoke
 make load-steady
 make load-spike
+make load-consistent
 ```
+
+Run consistent background traffic:
+
+```bash
+make traffic-start
+make traffic-logs
+make traffic-stop
+```
+
+Tune the consistent generator with per-minute rates:
+
+```bash
+make traffic-start TRAFFIC_DURATION=2h SHOP_PER_MIN=45 PRODUCTS_PER_MIN=30 CHECKOUT_PER_MIN=15
+```
+
+Default consistent traffic is deterministic constant-arrival-rate traffic: `20` home requests/min, `30` shop journeys/min, `20` products API requests/min, `10` checkout API requests/min, `10` orders API requests/min, and `6` health checks/min.
+Set any `*_PER_MIN` value to `0` to disable that flow.
 
 Stop:
 
