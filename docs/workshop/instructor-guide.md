@@ -18,8 +18,8 @@ Run these commands before class:
 ```bash
 make check
 make up
-make traffic-start
 make scenario-reset
+make traffic-start TRAFFIC_DURATION=2h
 ```
 
 Open Grafana and confirm these dashboards load:
@@ -51,7 +51,7 @@ Both responses should be `404`.
 | Time | Segment | Instructor actions | Student activity |
 | --- | --- | --- | --- |
 | 0–10 min | Orientation | Explain app topology and the two student URLs. | Open student UI and Grafana. |
-| 10–20 min | Baseline | Keep `make traffic-start` running. Show RED and USE signals. | Fill in baseline observations. |
+| 10–20 min | Baseline | Keep `make traffic-start TRAFFIC_DURATION=2h` running. Show RED and USE signals. | Fill in baseline observations. |
 | 20–40 min | Scenario 1 | Run `make scenario-start NAME=checkout-latency`. | Investigate latency by route and replica. |
 | 40–55 min | Correlation | Open logs and traces from Grafana. | Record the strongest evidence. |
 | 55–70 min | Scenario 2 | Run `make scenario-reset`, then `make scenario-start NAME=products-errors` or `make scenario-start NAME=cpu-hot-replica`. | Investigate errors or saturation. |
@@ -119,7 +119,7 @@ Return to baseline:
 ```bash
 make scenario-reset
 make traffic-stop
-make traffic-start
+make traffic-start TRAFFIC_DURATION=2h
 ```
 
 If dashboards are empty, wait two scrape intervals, then generate traffic:
@@ -134,6 +134,6 @@ If the stack is unhealthy, restart it:
 
 ```bash
 make restart
-make traffic-start
 make scenario-reset
+make traffic-start TRAFFIC_DURATION=2h
 ```

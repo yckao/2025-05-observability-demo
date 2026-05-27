@@ -28,6 +28,7 @@ The service feels slower under normal traffic even though errors are not the fir
 ## Expected evidence
 
 - `backend-3` is the affected replica.
+- CPU burn applies to matching backend `/api/` requests.
 - Container CPU utilization is higher for that replica.
 - Request latency can rise without matching 5xx growth.
 - Profiles point to CPU burn in the backend process.

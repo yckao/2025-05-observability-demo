@@ -44,17 +44,20 @@ For the main workshop path, students need only two URLs:
 
 Pyroscope runs internally and is queried through Grafana. Students should not need a separate Pyroscope URL.
 
-The instructor fault console is local-only by default:
+## Instructor-only local URL
+
+Do not share this URL with students.
 
 | Surface | Local URL | Notes |
 | --- | --- | --- |
-| Instructor fault console | http://localhost:8088 | Do not share with students. |
+| Instructor fault console | http://localhost:8088 | Hidden scenario control. |
 
 ## Start
 
 ```bash
 make up
-make traffic-start
+make scenario-reset
+make traffic-start TRAFFIC_DURATION=2h
 ```
 
 Then open:
@@ -97,7 +100,7 @@ make load-smoke
 make load-steady
 make load-spike
 make load-consistent
-make traffic-start
+make traffic-start TRAFFIC_DURATION=2h
 make traffic-logs
 make traffic-stop
 ```
@@ -119,7 +122,7 @@ make clean
 
 ## Default lesson flow
 
-1. Start the stack and background traffic.
+1. Start the stack, reset stale faults, and run long workshop background traffic.
 2. Share the student UI and Grafana URLs.
 3. Have students record a baseline in `00 Start Here` and `01 Operations Overview`.
 4. Run a hidden named scenario.
