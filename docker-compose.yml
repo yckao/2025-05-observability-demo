@@ -28,7 +28,9 @@ services:
     logging: *json-logging
 
   frontend-1: &frontend
-    build: ./apps/frontend
+    build:
+      context: ./apps
+      dockerfile: frontend/Dockerfile
     restart: on-failure
     container_name: obs-demo-frontend-1
     cgroup_parent: obs-demo-frontend-1.slice
@@ -84,7 +86,9 @@ services:
     logging: *json-logging
 
   backend-1: &backend
-    build: ./apps/backend
+    build:
+      context: ./apps
+      dockerfile: backend/Dockerfile
     restart: on-failure
     container_name: obs-demo-backend-1
     cgroup_parent: obs-demo-backend-1.slice

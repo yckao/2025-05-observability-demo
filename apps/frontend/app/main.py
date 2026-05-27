@@ -6,86 +6,31 @@ import requests
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 from fastapi.templating import Jinja2Templates
-from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
-from .logging_config import configure_logging, current_trace_id, emit_logfmt
-from .telemetry import configure_profiling, configure_tracing
+from observability_demo_shared.logging import configure_logging, current_trace_id, emit_logfmt
+from observability_demo_shared.request_metrics import count_response_bytes, create_http_metrics, request_bytes
+from observability_demo_shared.telemetry import configure_profiling, configure_tracing
 
 SERVICE_NAME = os.getenv("SERVICE_NAME", "frontend")
 REPLICA_ID = os.getenv("REPLICA_ID", "frontend-unknown")
 BACKEND_URL = os.getenv("BACKEND_URL", "http://load-balancer/api").rstrip("/")
 PUBLIC_GRAFANA_URL = os.getenv("PUBLIC_GRAFANA_URL", "http://localhost:3000").rstrip("/")
 
-logger = configure_logging()
+logger = configure_logging("frontend")
 templates = Jinja2Templates(directory="app/templates")
 session = requests.Session()
 
-HTTP_REQUESTS = Counter(
-    "demo_http_requests_total",
-    "HTTP requests handled by demo services.",
-    ["service", "replica", "method", "route", "status"],
-)
-HTTP_DURATION = Histogram(
-    "demo_http_request_duration_seconds",
-    "HTTP request duration for demo services.",
-    ["service", "replica", "method", "route", "status"],
-    buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10),
-)
-HTTP_REQUEST_BYTES = Counter(
-    "demo_http_request_bytes_total",
-    "Approximate HTTP request bytes received by demo services.",
-    ["service", "replica", "method", "route", "status"],
-)
-HTTP_RESPONSE_BYTES = Counter(
-    "demo_http_response_bytes_total",
-    "Approximate HTTP response bytes sent by demo services.",
-    ["service", "replica", "method", "route", "status"],
-)
-BUILD_INFO = Gauge(
-    "demo_build_info",
-    "Build and replica information for demo services.",
-    ["service", "replica"],
-)
-BUILD_INFO.labels(SERVICE_NAME, REPLICA_ID).set(1)
+HTTP_METRICS = create_http_metrics(SERVICE_NAME, REPLICA_ID)
+HTTP_REQUESTS = HTTP_METRICS.requests
+HTTP_DURATION = HTTP_METRICS.duration
+HTTP_REQUEST_BYTES = HTTP_METRICS.request_bytes
+HTTP_RESPONSE_BYTES = HTTP_METRICS.response_bytes
+BUILD_INFO = HTTP_METRICS.build_info
 
 app = FastAPI(title="Observability Demo Frontend")
-configure_tracing(app)
-configure_profiling()
-
-
-def _header_int(headers, name: str) -> int:
-    try:
-        return max(0, int(headers.get(name, "0") or 0))
-    except ValueError:
-        return 0
-
-
-def _headers_size(headers) -> int:
-    return sum(len(key) + len(value) + 4 for key, value in headers.items())
-
-
-def _request_bytes(request: Request) -> int:
-    return len(request.method) + len(str(request.url)) + _headers_size(request.headers) + _header_int(
-        request.headers, "content-length"
-    )
-
-
-async def _count_response_bytes(response: Response) -> tuple[Response, int]:
-    body = getattr(response, "body", None)
-    if body is None:
-        chunks = [chunk async for chunk in response.body_iterator]
-        body = b"".join(chunks)
-        headers = dict(response.headers)
-        headers.pop("transfer-encoding", None)
-        headers["content-length"] = str(len(body))
-        response = Response(
-            content=body,
-            status_code=response.status_code,
-            headers=headers,
-            media_type=response.media_type,
-            background=response.background,
-        )
-    return response, len(body) + _headers_size(response.headers)
+configure_tracing(app, default_service_name="frontend")
+configure_profiling(default_service_name="frontend", logger_name="frontend")
 
 
 def _trace_error(status_code: int, message: str, trace_id: str | None = None) -> JSONResponse:
@@ -117,7 +62,7 @@ async def record_requests(request: Request, call_next):
     response_bytes = 0
     try:
         response = await call_next(request)
-        response, response_bytes = await _count_response_bytes(response)
+        response, response_bytes = await count_response_bytes(response)
         status = response.status_code
         return response
     finally:
@@ -127,7 +72,7 @@ async def record_requests(request: Request, call_next):
             HTTP_REQUESTS.labels(SERVICE_NAME, REPLICA_ID, request.method, route, str(status)).inc()
             HTTP_DURATION.labels(SERVICE_NAME, REPLICA_ID, request.method, route, str(status)).observe(duration)
             HTTP_REQUEST_BYTES.labels(SERVICE_NAME, REPLICA_ID, request.method, route, str(status)).inc(
-                _request_bytes(request)
+                request_bytes(request)
             )
             HTTP_RESPONSE_BYTES.labels(SERVICE_NAME, REPLICA_ID, request.method, route, str(status)).inc(
                 response_bytes
