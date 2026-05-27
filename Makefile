@@ -1,4 +1,4 @@
-.PHONY: up down restart ps logs load-smoke load-steady load-spike load-consistent traffic-start traffic-stop traffic-status traffic-logs fault-reset clean
+.PHONY: up down restart ps logs load-smoke load-steady load-spike load-consistent traffic-start traffic-stop traffic-status traffic-logs fault-reset clean check
 
 DOCKER_ROOT_DIR ?= $(shell docker info --format '{{.DockerRootDir}}' 2>/dev/null)
 ifeq ($(DOCKER_ROOT_DIR),)
@@ -62,3 +62,6 @@ fault-reset:
 
 clean:
 	docker compose down -v --remove-orphans
+
+check:
+	python3 -m unittest discover -s tests -v
