@@ -28,7 +28,9 @@ services:
     logging: *json-logging
 
   frontend-1: &frontend
-    build: ./apps/frontend
+    build:
+      context: ./apps
+      dockerfile: frontend/Dockerfile
     restart: on-failure
     container_name: obs-demo-frontend-1
     cgroup_parent: obs-demo-frontend-1.slice
@@ -40,6 +42,7 @@ services:
       SERVICE_NAME: frontend
       REPLICA_ID: frontend-1
       BACKEND_URL: http://load-balancer/api
+      PUBLIC_GRAFANA_URL: ${PUBLIC_GRAFANA_URL:-http://localhost:3000}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
       PYROSCOPE_SERVER_ADDRESS: http://pyroscope:4040
     labels:
@@ -56,6 +59,7 @@ services:
       SERVICE_NAME: frontend
       REPLICA_ID: frontend-2
       BACKEND_URL: http://load-balancer/api
+      PUBLIC_GRAFANA_URL: ${PUBLIC_GRAFANA_URL:-http://localhost:3000}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
       PYROSCOPE_SERVER_ADDRESS: http://pyroscope:4040
     labels:
@@ -72,6 +76,7 @@ services:
       SERVICE_NAME: frontend
       REPLICA_ID: frontend-3
       BACKEND_URL: http://load-balancer/api
+      PUBLIC_GRAFANA_URL: ${PUBLIC_GRAFANA_URL:-http://localhost:3000}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
       PYROSCOPE_SERVER_ADDRESS: http://pyroscope:4040
     labels:
@@ -81,7 +86,9 @@ services:
     logging: *json-logging
 
   backend-1: &backend
-    build: ./apps/backend
+    build:
+      context: ./apps
+      dockerfile: backend/Dockerfile
     restart: on-failure
     container_name: obs-demo-backend-1
     cgroup_parent: obs-demo-backend-1.slice
@@ -145,9 +152,6 @@ services:
     cpus: "1.00"
     mem_limit: 1g
     command: start --insecure --join=crdb-1,crdb-2,crdb-3 --advertise-addr=crdb-1 --listen-addr=0.0.0.0:26257 --http-addr=0.0.0.0:8080 --cache=128MiB --max-sql-memory=128MiB
-    ports:
-      - "26257:26257"
-      - "8081:8080"
     volumes:
       - crdb-1:/cockroach/cockroach-data
     labels:
@@ -218,10 +222,6 @@ services:
       - --server.http.listen-addr=0.0.0.0:12345
       - --storage.path=/var/lib/alloy/data
       - /etc/alloy/config.alloy
-    ports:
-      - "12345:12345"
-      - "4317:4317"
-      - "4318:4318"
     volumes:
       - ./config/alloy/config.alloy:/etc/alloy/config.alloy:ro
       - ${DOCKER_ROOT_DIR:-/var/lib/docker}/containers:/var/lib/docker/containers:ro
@@ -245,8 +245,6 @@ services:
       - --storage.tsdb.path=/prometheus
       - --web.enable-remote-write-receiver
       - --web.enable-lifecycle
-    ports:
-      - "9090:9090"
     volumes:
       - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
@@ -260,8 +258,6 @@ services:
     image: grafana/loki:3.2.1
     restart: on-failure
     command: -config.file=/etc/loki/loki.yml
-    ports:
-      - "3100:3100"
     volumes:
       - ./config/loki/loki.yml:/etc/loki/loki.yml:ro
       - loki-data:/loki
@@ -275,8 +271,6 @@ services:
     image: grafana/tempo:2.6.1
     restart: on-failure
     command: -config.file=/etc/tempo/tempo.yml
-    ports:
-      - "3200:3200"
     volumes:
       - ./config/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
       - tempo-data:/var/tempo
@@ -291,8 +285,6 @@ services:
     restart: on-failure
     user: "0:0"
     command: -config.file=/etc/pyroscope/pyroscope.yml
-    ports:
-      - "4040:4040"
     volumes:
       - ./config/pyroscope/pyroscope.yml:/etc/pyroscope/pyroscope.yml:ro
       - pyroscope-data:/var/lib/pyroscope
@@ -311,6 +303,7 @@ services:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
       GF_USERS_DEFAULT_THEME: light
+      GF_SERVER_ROOT_URL: ${PUBLIC_GRAFANA_URL:-http://localhost:3000}
       GF_FEATURE_TOGGLES_ENABLE: traceqlEditor correlations traceToProfiles
     volumes:
       - grafana-data:/var/lib/grafana

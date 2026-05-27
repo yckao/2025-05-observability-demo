@@ -5,7 +5,7 @@
   "graphTooltip": 0,
   "links": [
     {"asDropdown": false, "icon": "external link", "includeVars": false, "keepTime": true, "tags": [], "targetBlank": true, "title": "Explore Tempo", "tooltip": "Open Tempo Explore", "type": "link", "url": "/explore?left={\"datasource\":\"tempo\",\"queries\":[{\"query\":\"{ resource.service.name = \\\"backend\\\" }\",\"queryType\":\"traceql\",\"refId\":\"A\"}],\"range\":{\"from\":\"now-30m\",\"to\":\"now\"}}"},
-    {"asDropdown": false, "icon": "external link", "includeVars": false, "keepTime": true, "tags": [], "targetBlank": true, "title": "Open Pyroscope", "tooltip": "Open Pyroscope", "type": "link", "url": "http://localhost:4040"}
+    {"asDropdown": false, "icon": "external link", "includeVars": false, "keepTime": true, "tags": [], "targetBlank": true, "title": "Explore Profiles in Grafana", "tooltip": "Open Grafana Explore and select the Pyroscope datasource", "type": "link", "url": "/explore"}
   ],
   "panels": [
     {
@@ -32,7 +32,7 @@
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
       "id": 3,
       "targets": [{"expr": "100 * sum by (replica) (label_replace(rate(container_cpu_usage_seconds_total{id=~\".*obs-demo-(backend-[0-9])[.]slice/docker-.*\", cpu=\"total\"}[1m]), \"replica\", \"$1\", \"id\", \".*obs-demo-(backend-[0-9])[.]slice/docker-.*\")) / clamp_min(sum by (replica) (label_replace(container_spec_cpu_quota{id=~\".*obs-demo-(backend-[0-9])[.]slice/docker-.*\"} / container_spec_cpu_period{id=~\".*obs-demo-(backend-[0-9])[.]slice/docker-.*\"}, \"replica\", \"$1\", \"id\", \".*obs-demo-(backend-[0-9])[.]slice/docker-.*\")), 0.001)", "legendFormat": "{{replica}}", "refId": "A"}],
-      "title": "Backend CPU Utilization Before Opening Pyroscope",
+      "title": "Backend CPU Utilization Before Exploring Profiles in Grafana",
       "type": "timeseries"
     },
     {
@@ -40,7 +40,7 @@
       "fieldConfig": {"defaults": {}, "overrides": []},
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
       "id": 4,
-      "options": {"code": {"language": "plaintext", "showLineNumbers": false, "showMiniMap": false}, "content": "Trace workflow:\n1. Generate traffic with /shop or make load-steady.\n2. Watch for slow or failed requests on the student page.\n3. Use Logs With Trace IDs and click the derived Tempo link.\n4. In Tempo, inspect frontend -> backend -> SQL spans.\n5. If CPU utilization is high, open Pyroscope and select backend.* or frontend.*.", "mode": "markdown"},
+      "options": {"code": {"language": "plaintext", "showLineNumbers": false, "showMiniMap": false}, "content": "Trace workflow:\n1. Generate traffic with /shop or make load-steady.\n2. Watch for slow or failed requests on the student page.\n3. Use Logs With Trace IDs and click the derived Tempo link.\n4. In Tempo, inspect frontend -> backend -> SQL spans.\n5. If CPU utilization is high, use Grafana Explore with the Pyroscope datasource and select backend.* or frontend.* profiles.", "mode": "markdown"},
       "title": "Trace And Profile Drilldown",
       "type": "text"
     }

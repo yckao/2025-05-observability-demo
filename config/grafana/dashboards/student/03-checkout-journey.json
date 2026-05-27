@@ -13,7 +13,7 @@
       "datasource": {"type": "__expr__", "uid": "__expr__"},
       "gridPos": {"h": 5, "w": 24, "x": 0, "y": 0},
       "id": 1,
-      "options": {"content": "Real-life use case: a user clicks checkout in the frontend. The frontend calls backend /api/products, then backend /api/checkout writes an order to CockroachDB. Start with journey latency and error ratio, then inspect backend logs with trace_id, open the trace in Tempo, and use Pyroscope if CPU is abnormal.", "mode": "markdown"},
+      "options": {"content": "Real-life use case: a user clicks checkout in the frontend. The frontend calls backend /api/products, then backend /api/checkout writes an order to CockroachDB. Start with journey latency and error ratio, then inspect backend logs with trace_id, open the trace in Tempo, and use Grafana Explore with the Pyroscope datasource if CPU is abnormal.", "mode": "markdown"},
       "title": "Checkout Journey: Frontend To Backend To Database",
       "type": "text"
     },

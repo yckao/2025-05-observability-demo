@@ -111,7 +111,7 @@
       "datasource": {"type": "__expr__", "uid": "__expr__"},
       "gridPos": {"h": 6, "w": 24, "x": 0, "y": 20},
       "id": 10,
-      "options": {"content": "Use this as the incident landing page. Start with traffic, errors, and p95 latency. If one service or replica is abnormal, open Service Drilldown and select it. In drilldown logs, expand a log line and click the derived trace_id field to jump into Tempo. If CPU is high, open Pyroscope and select the matching backend.* or frontend.* application.", "mode": "markdown"},
+      "options": {"content": "Use this as the incident landing page. Start with traffic, errors, and p95 latency. If one service or replica is abnormal, open Service Drilldown and select it. In drilldown logs, expand a log line and click the derived trace_id field to jump into Tempo. If CPU is high, use Grafana Explore with the Pyroscope datasource and select the matching backend.* or frontend.* application.", "mode": "markdown"},
       "title": "How To Use This Dashboard",
       "type": "text"
     }
