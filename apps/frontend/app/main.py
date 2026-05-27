@@ -14,6 +14,7 @@ from .telemetry import configure_profiling, configure_tracing
 SERVICE_NAME = os.getenv("SERVICE_NAME", "frontend")
 REPLICA_ID = os.getenv("REPLICA_ID", "frontend-unknown")
 BACKEND_URL = os.getenv("BACKEND_URL", "http://load-balancer/api").rstrip("/")
+PUBLIC_GRAFANA_URL = os.getenv("PUBLIC_GRAFANA_URL", "http://localhost:3000").rstrip("/")
 
 logger = configure_logging()
 templates = Jinja2Templates(directory="app/templates")
@@ -168,6 +169,7 @@ def index(request: Request):
         {
             "replica": REPLICA_ID,
             "backend_url": BACKEND_URL,
+            "grafana_url": PUBLIC_GRAFANA_URL,
         },
     )
 

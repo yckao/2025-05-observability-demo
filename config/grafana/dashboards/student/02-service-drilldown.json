@@ -7,7 +7,7 @@
     {"asDropdown": false, "icon": "dashboard", "includeVars": false, "keepTime": true, "tags": [], "targetBlank": false, "title": "Operations Overview", "tooltip": "Back to overview", "type": "link", "url": "/d/obs-demo-operations-overview/observability-demo-operations-overview"},
     {"asDropdown": false, "icon": "external link", "includeVars": true, "keepTime": true, "tags": [], "targetBlank": true, "title": "Explore Logs", "tooltip": "Open logs for selected service", "type": "link", "url": "/explore?left={\"datasource\":\"loki\",\"queries\":[{\"expr\":\"{service=~\\\"$service\\\", replica=~\\\"$replica\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"now-30m\",\"to\":\"now\"}}"},
     {"asDropdown": false, "icon": "external link", "includeVars": true, "keepTime": true, "tags": [], "targetBlank": true, "title": "Explore Traces", "tooltip": "Open traces for selected service", "type": "link", "url": "/explore?left={\"datasource\":\"tempo\",\"queries\":[{\"query\":\"{ resource.service.name =~ \\\"$service\\\" }\",\"queryType\":\"traceql\",\"refId\":\"A\"}],\"range\":{\"from\":\"now-30m\",\"to\":\"now\"}}"},
-    {"asDropdown": false, "icon": "external link", "includeVars": true, "keepTime": true, "tags": [], "targetBlank": true, "title": "Open Pyroscope", "tooltip": "Open profiles", "type": "link", "url": "http://localhost:4040"}
+    {"asDropdown": false, "icon": "external link", "includeVars": true, "keepTime": true, "tags": [], "targetBlank": true, "title": "Explore Profiles in Grafana", "tooltip": "Open Grafana Explore and select the Pyroscope datasource", "type": "link", "url": "/explore"}
   ],
   "templating": {
     "list": [
@@ -129,7 +129,7 @@
       "datasource": {"type": "__expr__", "uid": "__expr__"},
       "gridPos": {"h": 6, "w": 24, "x": 0, "y": 29},
       "id": 12,
-      "options": {"content": "Workflow: choose service and replica. Use RED panels to find symptoms. Use CPU/memory/network panels for USE signals. In the log panels, expand a line and click trace_id to jump to Tempo. From Tempo, use traces-to-logs to come back to Loki. If CPU is high, open Pyroscope and select the matching application such as backend.backend-1.", "mode": "markdown"},
+      "options": {"content": "Workflow: choose service and replica. Use RED panels to find symptoms. Use CPU/memory/network panels for USE signals. In the log panels, expand a line and click trace_id to jump to Tempo. From Tempo, use traces-to-logs to come back to Loki. If CPU is high, use Grafana Explore with the Pyroscope datasource and select the matching application such as backend.backend-1.", "mode": "markdown"},
       "title": "Metrics To Logs To Traces To Profiles",
       "type": "text"
     }
