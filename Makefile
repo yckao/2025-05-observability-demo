@@ -1,4 +1,4 @@
-.PHONY: up down restart ps logs load-smoke load-steady load-spike load-consistent traffic-start traffic-stop traffic-status traffic-logs fault-reset clean check
+.PHONY: up down restart ps logs load-smoke load-steady load-spike load-consistent traffic-start traffic-stop traffic-status traffic-logs fault-reset clean check scenario-list scenario-start scenario-status scenario-reset
 
 DOCKER_ROOT_DIR ?= $(shell docker info --format '{{.DockerRootDir}}' 2>/dev/null)
 ifeq ($(DOCKER_ROOT_DIR),)
@@ -59,6 +59,19 @@ traffic-logs:
 
 fault-reset:
 	./scripts/fault-reset.sh | jq .
+
+scenario-list:
+	python3 scripts/scenario.py list
+
+scenario-start:
+	@test -n "$(NAME)" || (echo "usage: make scenario-start NAME=checkout-latency" >&2; exit 2)
+	python3 scripts/scenario.py start "$(NAME)"
+
+scenario-status:
+	python3 scripts/scenario.py status
+
+scenario-reset:
+	python3 scripts/scenario.py reset
 
 clean:
 	docker compose down -v --remove-orphans
