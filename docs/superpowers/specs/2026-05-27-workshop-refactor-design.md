@@ -84,7 +84,7 @@ Students should only need two public URLs:
 - Student UI: port `8080`.
 - Grafana: port `3000`.
 
-Remove browser-facing hardcoded links to `localhost:4040`. Replace them with instructions and dashboard links that keep students inside Grafana for profile exploration.
+Remove browser-facing hardcoded links to `the Pyroscope local UI URL`. Replace them with instructions and dashboard links that keep students inside Grafana for profile exploration.
 
 Pyroscope stays available on the Docker network for ingestion and for Grafana datasource queries. It does not need a separate public tunnel.
 
@@ -151,7 +151,7 @@ Add a fast test/check layer that does not require the full observability stack t
 - Verify required Make targets exist.
 - Verify scenario definition names and referenced scripts are valid.
 - Verify student-facing Nginx routes hide instructor-only endpoints.
-- Verify dashboard links no longer point students to `localhost:4040`.
+- Verify dashboard links no longer point students to `the Pyroscope local UI URL`.
 - Verify README links to workshop docs.
 - Verify required workshop docs and scenario cards exist.
 

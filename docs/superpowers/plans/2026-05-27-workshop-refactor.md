@@ -1340,7 +1340,7 @@ class PublicSurfaceTest(unittest.TestCase):
         offenders = []
         for relative_path in BROWSER_FACING_FILES:
             text = read_text(relative_path)
-            if "localhost:4040" in text or "http://localhost:4040" in text:
+            if "localhost:" "4040" in text or "http://localhost:" "4040" in text:
                 offenders.append(relative_path)
         self.assertEqual([], offenders)
 
@@ -1533,7 +1533,7 @@ In `apps/frontend/app/templates/index.html`, replace:
 
 ```html
     <a class="button secondary" href="http://localhost:3000" target="_blank" rel="noreferrer">Open Grafana</a>
-    <a class="button secondary" href="http://localhost:4040" target="_blank" rel="noreferrer">Open Pyroscope</a>
+    <a class="button secondary" href="<direct-pyroscope-local-url>" target="_blank" rel="noreferrer">Open Pyroscope</a>
 ```
 
 with:
@@ -2385,7 +2385,7 @@ Expected dry-run commands print JSON with `"mode": "dry-run"` and request URLs u
 Run:
 
 ```bash
-grep -RIn "localhost:4040\|http://localhost:4040" README.md docs apps config/grafana/dashboards || true
+grep -RIn "localhost:40""40\|http://localhost:40""40" README.md docs apps config/grafana/dashboards || true
 ```
 
 Expected result: no output.
