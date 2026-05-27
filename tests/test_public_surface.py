@@ -1,3 +1,4 @@
+import re
 import unittest
 from pathlib import Path
 
@@ -8,8 +9,10 @@ BROWSER_FACING_FILES = [
     "docs/workshop/instructor-guide.md",
     "docs/workshop/student-worksheet.md",
     "apps/frontend/app/templates/index.html",
-    "config/grafana/dashboards/student/02-service-drilldown.json",
-    "config/grafana/dashboards/student/04-logs-traces-profiles.json",
+    *[
+        str(path.relative_to(ROOT))
+        for path in sorted((ROOT / "config/grafana/dashboards/student").glob("*.json"))
+    ],
 ]
 
 FORBIDDEN_DEFAULT_PORT_MAPPINGS = [
@@ -23,6 +26,11 @@ FORBIDDEN_DEFAULT_PORT_MAPPINGS = [
     '"4317:4317"',
     '"4318:4318"',
 ]
+
+DIRECT_PYROSCOPE_NAVIGATION = re.compile(
+    r"\b(?:open|use|visit|go to|link to)\s+Pyroscope\b|localhost:4040|http://localhost:4040",
+    flags=re.IGNORECASE,
+)
 
 
 def read_text(relative_path: str) -> str:
@@ -42,7 +50,7 @@ class PublicSurfaceTest(unittest.TestCase):
         offenders = []
         for relative_path in BROWSER_FACING_FILES:
             text = read_text(relative_path)
-            if "Open Pyroscope" in text or "open Pyroscope" in text:
+            if DIRECT_PYROSCOPE_NAVIGATION.search(text):
                 offenders.append(relative_path)
         self.assertEqual([], offenders)
 
